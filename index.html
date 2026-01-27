@@ -3,41 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Balanço de Estoque</title>
+    <title>Sistema de Estoque Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @keyframes pulse-red {
+            0%, 100% { color: #dc2626; }
+            50% { color: #f87171; transform: scale(1.05); }
+        }
+        .alerta-ultimo {
+            animation: pulse-red 1.5s infinite;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h1 class="text-3xl font-extrabold text-gray-800">📊 Balanço de Estoque</h1>
-            <button onclick="gerarPDF()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition">
-                📄 Exportar PDF
+
+    <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-xl">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b pb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-800">📦 Controle de Estoque</h1>
+                <p class="text-gray-500">Gestão de entradas, saídas e balanço</p>
+            </div>
+            <button onclick="gerarPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all flex items-center gap-2">
+                <span>📄</span> Gerar Balanço PDF
             </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <input id="nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-400">
-            <input id="qtd" type="number" placeholder="Qtd" class="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-400">
-            <input id="preco" type="number" step="0.01" placeholder="Preço Unitário" class="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-400">
-            <button onclick="adicionar()" class="bg-blue-600 text-white font-bold p-2 rounded hover:bg-blue-700 transition">Adicionar Registro</button>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-5 rounded-xl border border-blue-100">
+            <div class="flex flex-col">
+                <label class="text-xs font-bold text-blue-800 mb-1 ml-1">PRODUTO</label>
+                <input id="nome" type="text" placeholder="Ex: Parafuso" class="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-bold text-blue-800 mb-1 ml-1">QUANTIDADE</label>
+                <input id="qtd" type="number" placeholder="Ex: 10" class="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-bold text-blue-800 mb-1 ml-1">PREÇO UNITÁRIO</label>
+                <input id="preco" type="number" step="0.01" placeholder="R$ 0,00" class="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex flex-col justify-end">
+                <button onclick="adicionar()" class="bg-blue-600 text-white font-bold p-2 rounded-lg hover:bg-blue-700 transition shadow-md h-[42px]">
+                    Adicionar Item
+                </button>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left" id="tabela-estoque">
+        <div class="overflow-x-auto rounded-lg border border-gray-200">
+            <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-800 text-white">
-                        <th class="p-3">Produto</th>
-                        <th class="p-3">Qtd</th>
-                        <th class="p-3">Preço Unit.</th>
-                        <th class="p-3">Subtotal</th>
-                        <th class="p-3 text-center">Ações</th>
+                        <th class="p-4">Produto</th>
+                        <th class="p-4">Qtd</th>
+                        <th class="p-4">Preço Unit.</th>
+                        <th class="p-4">Subtotal</th>
+                        <th class="p-4 text-center">Ações</th>
                     </tr>
                 </thead>
-                <tbody id="lista-estoque" class="divide-y divide-gray-200"></tbody>
+                <tbody id="lista-estoque" class="divide-y divide-gray-200 bg-white">
+                    </tbody>
             </table>
         </div>
+
+        <div id="resumo-total" class="mt-4 text-right text-xl font-bold text-gray-800">
+            </div>
     </div>
 
     <script>
@@ -45,93 +76,131 @@
 
         function renderizar() {
             const lista = document.getElementById('lista-estoque');
+            const resumoTotal = document.getElementById('resumo-total');
             lista.innerHTML = '';
+            let valorTotalGeral = 0;
+
             estoque.forEach((item, index) => {
-                const total = (item.qtd * item.preco).toFixed(2);
+                const subtotal = item.qtd * item.preco;
+                valorTotalGeral += subtotal;
+
+                // Lógica de Alerta de último item
+                const ehUltimo = item.qtd === 1;
+                const alertaClasse = ehUltimo ? "alerta-ultimo font-bold" : "text-gray-700";
+                const avisoTexto = ehUltimo ? "<br><span class='text-[10px] uppercase tracking-tighter'>⚠️ Última unidade!</span>" : "";
+
                 lista.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-3 font-medium">${item.nome}</td>
-                        <td class="p-3">${item.qtd}</td>
-                        <td class="p-3">R$ ${parseFloat(item.preco).toFixed(2)}</td>
-                        <td class="p-3 text-blue-600 font-bold">R$ ${total}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="remover(${index})" class="text-red-500 hover:underline">Remover</button>
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-semibold text-gray-800">${item.nome}</td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <button onclick="alterarQtd(${index}, -1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300 font-bold">-</button>
+                                <span class="${alertaClasse}">${item.qtd}${avisoTexto}</span>
+                                <button onclick="alterarQtd(${index}, 1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300 font-bold">+</button>
+                            </div>
+                        </td>
+                        <td class="p-4 text-gray-600">R$ ${parseFloat(item.preco).toFixed(2)}</td>
+                        <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="remover(${index})" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-red-200 transition">
+                                EXCLUIR
+                            </button>
                         </td>
                     </tr>`;
             });
+
+            resumoTotal.innerHTML = `Valor Total em Estoque: R$ ${valorTotalGeral.toFixed(2)}`;
             localStorage.setItem('meuEstoque', JSON.stringify(estoque));
         }
 
         function adicionar() {
-            const nome = document.getElementById('nome').value;
-            const qtd = document.getElementById('qtd').value;
-            const preco = document.getElementById('preco').value;
+            const inputNome = document.getElementById('nome');
+            const inputQtd = document.getElementById('qtd');
+            const inputPreco = document.getElementById('preco');
 
-            if(nome && qtd && preco) {
-                estoque.push({ 
-                    nome, 
-                    qtd: parseInt(qtd), 
-                    preco: parseFloat(preco),
-                    data: new Date().toLocaleDateString('pt-BR') 
-                });
+            const nome = inputNome.value.trim();
+            const qtd = parseInt(inputQtd.value);
+            const preco = parseFloat(inputPreco.value);
+
+            if(nome && !isNaN(qtd) && !isNaN(preco)) {
+                // Soma automática se o nome for igual
+                const itemExistente = estoque.find(i => i.nome.toLowerCase() === nome.toLowerCase());
+
+                if (itemExistente) {
+                    itemExistente.qtd += qtd;
+                    itemExistente.preco = preco; // Atualiza para o preço da última entrada
+                } else {
+                    estoque.push({ nome, qtd, preco });
+                }
+
+                inputNome.value = '';
+                inputQtd.value = '';
+                inputPreco.value = '';
+                inputNome.focus();
                 renderizar();
-                document.getElementById('nome').value = '';
-                document.getElementById('qtd').value = '';
-                document.getElementById('preco').value = '';
+            } else {
+                alert("Preencha todos os campos corretamente.");
             }
         }
 
-        function remover(index) {
-            estoque.splice(index, 1);
+        function alterarQtd(index, valor) {
+            estoque[index].qtd += valor;
+            if (estoque[index].qtd < 0) estoque[index].qtd = 0;
             renderizar();
+        }
+
+        function remover(index) {
+            if(confirm("Deseja remover este item do sistema?")) {
+                estoque.splice(index, 1);
+                renderizar();
+            }
         }
 
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
-            // Configurações do Cabeçalho do PDF
-            doc.setFontSize(18);
-            doc.text("Relatório de Balanço de Estoque", 14, 20);
             
-            doc.setFontSize(11);
+            doc.setFontSize(20);
+            doc.text("BALANÇO GERAL DE ESTOQUE", 14, 22);
+            
+            doc.setFontSize(10);
             doc.setTextColor(100);
-            doc.text(`Data de emissão: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+            doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
 
-            // Preparar dados para a tabela do PDF
-            const colunas = ["Produto", "Qtd", "Preço Unit.", "Total"];
+            const colunas = ["Produto", "Quantidade", "Valor Unit.", "Subtotal"];
             const linhas = [];
-            let valorTotalGeral = 0;
+            let totalGeral = 0;
 
             estoque.forEach(item => {
-                const total = item.qtd * item.preco;
-                valorTotalGeral += total;
+                const sub = item.qtd * item.preco;
+                totalGeral += sub;
                 linhas.push([
                     item.nome,
                     item.qtd,
                     `R$ ${item.preco.toFixed(2)}`,
-                    `R$ ${total.toFixed(2)}`
+                    `R$ ${sub.toFixed(2)}`
                 ]);
             });
 
-            // Gerar a tabela no PDF
             doc.autoTable({
                 head: [colunas],
                 body: linhas,
-                startY: 35,
-                theme: 'striped',
-                headStyles: { fillColor: [31, 41, 55] } // Cor cinza escuro do Tailwind
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [31, 41, 55], halign: 'center' },
+                columnStyles: {
+                    1: { halign: 'center' },
+                    2: { halign: 'right' },
+                    3: { halign: 'right' }
+                }
             });
 
-            // Adicionar valor total geral ao final
             const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(12);
+            doc.setFontSize(14);
             doc.setTextColor(0);
-            doc.setFont("helvetica", "bold");
-            doc.text(`VALOR TOTAL DO ESTOQUE: R$ ${valorTotalGeral.toFixed(2)}`, 14, finalY);
+            doc.text(`VALOR TOTAL DO BALANÇO: R$ ${totalGeral.toFixed(2)}`, 14, finalY);
 
-            // Baixar o arquivo
-            doc.save(`balanco_estoque_${new Date().getTime()}.pdf`);
+            doc.save(`balanco_estoque_${new Date().toLocaleDateString('pt-BR')}.pdf`);
         }
 
         renderizar();
