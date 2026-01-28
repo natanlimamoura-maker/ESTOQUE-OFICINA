@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Control Pro - Segurança Total</title>
+    <title>Diesel Control Pro - Oficina</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        .alerta-baixo { animation: pulse 2s infinite; color: #ef4444; font-weight: bold; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-100 p-2 md:p-8 font-sans text-slate-900">
 
@@ -18,38 +15,25 @@
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-6">
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
-                <div class="flex gap-4 mt-1">
-                    <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total: R$ 0,00</span>
-                </div>
+                <p id="valorTotalPatio" class="text-sm font-bold text-emerald-600 mt-1">Carregando total...</p>
             </div>
             <div class="flex flex-wrap gap-2 justify-center">
-                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-black transition">💾 SALVAR BACKUP FORA DO PC</button>
-                <button onclick="gerarPDF(true)" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition">📱 VER RELATÓRIO NO CELULAR</button>
-                <button onclick="gerarPDF(false)" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-lg hover:bg-emerald-700 transition">📄 BAIXAR PDF MENSAL</button>
+                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold">💾 BACKUP</button>
+                <button onclick="abrirModalQR()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold">📱 GERAR QR PARA CELULAR</button>
+                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold">📄 PDF NO PC</button>
             </div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
-            <div class="md:col-span-4 relative">
-                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Localizar peça..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
-            </div>
-            <div class="md:col-span-8 flex gap-2 bg-slate-900 p-2 rounded-xl">
-                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none focus:ring-1 focus:ring-emerald-400">
-                <input id="qtd_inicial" type="number" placeholder="Qtd" class="w-20 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
-                <input id="preco" type="number" step="0.01" placeholder="Custo R$" class="w-24 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
-                <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition text-xs uppercase">Cadastrar</button>
-            </div>
-        </div>
+        <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Buscar peça..." class="w-full p-3 mb-6 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500">
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full text-left border-collapse">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left">
                 <thead class="bg-slate-800 text-slate-200 uppercase text-[10px] font-bold">
                     <tr>
                         <th class="p-4">Item</th>
-                        <th class="p-4">Estoque</th>
-                        <th class="p-4">Preço Unit.</th>
-                        <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Ações</th>
+                        <th class="p-4">Qtd</th>
+                        <th class="p-4">Preço</th>
+                        <th class="p-4">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
@@ -57,174 +41,142 @@
         </div>
     </div>
 
-    <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800">
-                <span id="modalTitulo">Movimentar</span>
-                <button onclick="fecharModal()" class="text-2xl">&times;</button>
-            </div>
-            <div class="p-6 space-y-4">
-                <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none border-slate-200 focus:border-emerald-500" value="1">
-                <div id="areaSaida">
-                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-4 border-2 rounded-xl outline-none mb-4 font-bold bg-slate-50 text-sm">
-                        <option value="Pátio">📦 USO NO PÁTIO (INTERNO)</option>
-                        <option value="Veículo">🚚 VEÍCULO (CLIENTE/PLACA)</option>
-                    </select>
-                    <div id="campoVeiculo" class="hidden">
-                        <input id="modalIdentificacao" type="text" placeholder="PLACA OU NOME DO CLIENTE" class="w-full p-4 border-2 rounded-xl outline-none border-emerald-500 font-bold uppercase placeholder:text-slate-300">
-                    </div>
-                </div>
-                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg mt-4"></button>
-            </div>
+    <div id="modalQR" class="fixed inset-0 bg-slate-900/90 hidden flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-6 rounded-3xl text-center max-w-sm w-full">
+            <h2 class="font-black text-xl mb-4">Escaneie com o Celular</h2>
+            <div id="qrcode-container" class="flex justify-center p-4 bg-white border rounded-xl mb-4"></div>
+            <p class="text-xs text-slate-500 mb-6 uppercase font-bold">Este QR contém o resumo das saídas do mês atual.</p>
+            <button onclick="fecharModalQR()" class="w-full bg-slate-800 text-white p-3 rounded-xl font-bold">FECHAR</button>
+        </div>
+    </div>
+
+    <div id="modalSaida" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6">
+            <h2 id="tituloSaida" class="text-xl font-black mb-4">Saída de Peça</h2>
+            <input id="qtdSaida" type="number" class="w-full p-3 border-2 rounded-xl mb-4 text-xl font-bold" value="1">
+            <select id="destinoSaida" onchange="togglePlaca()" class="w-full p-3 border-2 rounded-xl mb-4 font-bold">
+                <option value="Pátio">📦 USO NO PÁTIO</option>
+                <option value="Veículo">🚚 VEÍCULO (CLIENTE/PLACA)</option>
+            </select>
+            <input id="identificacaoSaida" type="text" placeholder="PLACA OU CLIENTE" class="w-full p-3 border-2 border-emerald-500 rounded-xl mb-4 hidden font-bold uppercase">
+            <button onclick="confirmarSaida()" class="w-full bg-red-600 text-white p-4 rounded-xl font-black uppercase">Confirmar Saída</button>
+            <button onclick="fecharModalSaida()" class="w-full text-slate-400 mt-2 text-sm uppercase font-bold">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // MANTENDO AS MESMAS CHAVES PARA NÃO QUEBRAR OS DADOS
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
-        let indexAtual = null, tipoAtual = null;
+        let indexAtual = null;
 
-        function registrarMovimentacao(nome, qtd, tipo, detalhes = "") {
+        function registrar(nome, qtd, tipo, detalhes = "") {
             const agora = new Date();
             historico.push({
                 data: agora.toLocaleDateString('pt-BR'),
                 hora: agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
                 mesAno: agora.toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'}),
-                nome: nome.toUpperCase(), 
-                qtd, tipo, detalhes: detalhes.toUpperCase()
+                nome: nome.toUpperCase(), qtd, tipo, detalhes: detalhes.toUpperCase()
             });
             localStorage.setItem('meuHistorico', JSON.stringify(historico));
         }
 
         function renderizar() {
             const lista = document.getElementById('lista-estoque');
-            const termoBusca = document.getElementById('busca').value.toLowerCase();
-            let totalGeral = 0;
+            const busca = document.getElementById('busca').value.toLowerCase();
+            let total = 0;
             lista.innerHTML = '';
 
             estoque.forEach((item, index) => {
-                const subtotal = item.qtd * item.preco;
-                totalGeral += subtotal;
-                if (item.nome.toLowerCase().includes(termoBusca)) {
+                total += (item.qtd * item.preco);
+                if (item.nome.toLowerCase().includes(busca)) {
                     lista.innerHTML += `
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="p-4 font-bold text-slate-800 uppercase text-xs">${item.nome}</td>
-                            <td class="p-4 font-bold ${item.qtd <= 1 ? 'alerta-baixo' : 'text-slate-600'} text-lg">${item.qtd}</td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-slate-500 font-medium text-[10px]">R$ ${item.preco.toFixed(2)}</span>
-                                    <button onclick="editarPreco(${index})" class="text-[8px] bg-slate-100 px-1 py-0.5 rounded text-slate-400 font-bold">EDITAR</button>
-                                </div>
-                            </td>
-                            <td class="p-4 font-bold text-emerald-600 text-sm">R$ ${subtotal.toFixed(2)}</td>
-                            <td class="p-4 text-center">
-                                <div class="flex justify-center gap-2">
-                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black">SAÍDA</button>
-                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black">ENTRADA</button>
-                                    <button onclick="remover(${index})" class="ml-2 text-slate-300 hover:text-red-500 transition">🗑️</button>
-                                </div>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-bold text-xs uppercase">${item.nome}</td>
+                            <td class="p-4 font-bold text-lg text-slate-600">${item.qtd}</td>
+                            <td class="p-4 text-xs text-slate-500">R$ ${item.preco.toFixed(2)}</td>
+                            <td class="p-4 flex gap-2">
+                                <button onclick="abrirSaida(${index})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black">SAÍDA</button>
+                                <button onclick="entradaRapida(${index})" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-black">ENTRA</button>
                             </td>
                         </tr>`;
                 }
             });
-            document.getElementById('valorTotalPatio').innerText = `Total Pátio: R$ ${totalGeral.toFixed(2)}`;
+            document.getElementById('valorTotalPatio').innerText = `Total Pátio: R$ ${total.toFixed(2)}`;
             localStorage.setItem('meuEstoque', JSON.stringify(estoque));
         }
 
-        function adicionar() {
-            const n = document.getElementById('nome').value.trim();
-            const q = parseInt(document.getElementById('qtd_inicial').value) || 0;
-            const p = parseFloat(document.getElementById('preco').value);
-            if(n && !isNaN(p)) {
-                estoque.push({nome: n.toUpperCase(), qtd: q, preco: p});
-                registrarMovimentacao(n.toUpperCase(), q, "Cadastro", "ENTRADA INICIAL");
-                document.getElementById('nome').value = ''; document.getElementById('qtd_inicial').value = ''; document.getElementById('preco').value = '';
+        // --- FUNÇÕES DE MOVIMENTAÇÃO ---
+        function abrirSaida(index) {
+            indexAtual = index;
+            document.getElementById('tituloSaida').innerText = `Saída: ${estoque[index].nome}`;
+            document.getElementById('modalSaida').classList.remove('hidden');
+        }
+
+        function togglePlaca() {
+            const d = document.getElementById('destinoSaida').value;
+            document.getElementById('identificacaoSaida').className = (d === 'Veículo') ? 'w-full p-3 border-2 border-emerald-500 rounded-xl mb-4 font-bold uppercase' : 'hidden';
+        }
+
+        function confirmarSaida() {
+            const item = estoque[indexAtual];
+            const q = parseInt(document.getElementById('qtdSaida').value);
+            const d = document.getElementById('destinoSaida').value;
+            const i = document.getElementById('identificacaoSaida').value;
+
+            if (q > item.qtd) return alert("Estoque insuficiente!");
+            item.qtd -= q;
+            registrar(item.nome, q, "SAÍDA", d === 'Veículo' ? `VEÍCULO: ${i}` : "PÁTIO");
+            fecharModalSaida(); renderizar();
+        }
+
+        function entradaRapida(index) {
+            const q = prompt(`Entrada de "${estoque[index].nome}". Quantidade?`, "1");
+            if (q && !isNaN(q)) {
+                estoque[index].qtd += parseInt(q);
+                registrar(estoque[index].nome, q, "ENTRADA", "REPOSIÇÃO");
                 renderizar();
             }
         }
 
-        function editarPreco(index) {
-            const novo = prompt(`Novo preço para: ${estoque[index].nome}`, estoque[index].preco);
-            if (novo !== null && !isNaN(novo)) { estoque[index].preco = parseFloat(novo); renderizar(); }
+        function fecharModalSaida() { document.getElementById('modalSaida').classList.add('hidden'); }
+
+        // --- FUNÇÕES DE QR CODE ---
+        function abrirModalQR() {
+            const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
+            const rel = historico.filter(h => h.mesAno === mes).slice(-15);
+            
+            // Gerar texto para o QR Code
+            let txt = `DIESEL CONTROL - ${mes}\n`;
+            rel.forEach(h => txt += `${h.data} | ${h.tipo}: ${h.qtd} ${h.nome} (${h.detalhes})\n`);
+
+            document.getElementById('qrcode-container').innerHTML = "";
+            new QRCode(document.getElementById("qrcode-container"), {
+                text: txt,
+                width: 200,
+                height: 200
+            });
+            document.getElementById('modalQR').classList.remove('hidden');
         }
 
-        function abrirModal(index, tipo) {
-            indexAtual = index; tipoAtual = tipo;
-            const modal = document.getElementById('modalMovimentacao');
-            const btn = document.getElementById('btnConfirmar');
-            document.getElementById('modalTitulo').innerText = `${tipo}: ${estoque[index].nome}`;
-            document.getElementById('modalQtd').value = 1; document.getElementById('modalIdentificacao').value = '';
-            modal.classList.remove('hidden');
-            if (tipo === 'Saída') {
-                btn.innerText = "CONFIRMAR SAÍDA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-600 shadow-lg";
-                document.getElementById('areaSaida').classList.remove('hidden'); toggleVeiculo();
-            } else {
-                btn.innerText = "CONFIRMAR ENTRADA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 shadow-lg";
-                document.getElementById('areaSaida').classList.add('hidden');
-            }
-            btn.onclick = confirmarAcao;
-        }
-
-        function toggleVeiculo() {
-            const d = document.getElementById('modalDestino').value;
-            document.getElementById('campoVeiculo').className = (d === 'Veículo') ? 'block' : 'hidden';
-        }
-
-        function fecharModal() { document.getElementById('modalMovimentacao').classList.add('hidden'); }
-
-        function confirmarAcao() {
-            const item = estoque[indexAtual];
-            const q = parseInt(document.getElementById('modalQtd').value);
-            if (tipoAtual === 'Saída') {
-                if (q > item.qtd) return alert("Estoque insuficiente!");
-                item.qtd -= q;
-                const d = document.getElementById('modalDestino').value;
-                const i = document.getElementById('modalIdentificacao').value;
-                registrarMovimentacao(item.nome, q, "Saída", d === 'Veículo' ? `VEÍCULO: ${i}` : "PÁTIO");
-            } else {
-                item.qtd += q; registrarMovimentacao(item.nome, q, "Entrada", "REPOSIÇÃO");
-            }
-            fecharModal(); renderizar();
-        }
-
-        function remover(index) { if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); } }
+        function fecharModalQR() { document.getElementById('modalQR').classList.add('hidden'); }
 
         function fazerBackup() {
             const b = new Blob([JSON.stringify({estoque, historico})], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(b);
-            a.download = `backup_diesel_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`; a.click();
-            alert("Backup salvo com sucesso! Guarde este arquivo em local seguro.");
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = `backup_oficina.json`; a.click();
         }
 
-        async function gerarPDF(abrirNaTela = false) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        function gerarPDF() {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
             const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
-            
-            doc.setFillColor(31, 41, 55);
-            doc.rect(0, 0, 210, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text("DIESEL CONTROL PRO - RELATÓRIO MENSAL", 14, 20);
-            
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(10);
-            const dadosMes = historico.filter(h => h.mesAno === mes);
-
+            doc.text(`RELATORIO MENSAL - ${mes}`, 14, 20);
             doc.autoTable({
-                head: [["ITEM", "QTD", "TIPO", "DESTINO", "DATA", "HORA"]],
-                body: dadosMes.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data, h.hora]),
-                startY: 40,
-                theme: 'grid',
-                headStyles: { fillColor: [16, 185, 129] }
+                head: [["Item", "Qtd", "Tipo", "Detalhe", "Data"]],
+                body: historico.filter(h => h.mesAno === mes).map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data]),
+                startY: 30
             });
-
-            if (abrirNaTela) {
-                window.open(doc.output('bloburl'), '_blank');
-            } else {
-                doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
-            }
+            doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
         }
 
         renderizar();
