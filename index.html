@@ -3,38 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Control Pro</title>
+    <title>Diesel Control Pro - Oficina</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         .alerta-ultimo { animation: pulse 1.5s infinite; color: #dc2626; font-weight: bold; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .modal-transition { transition: all 0.3s ease-in-out; }
+        .modal-transition { transition: all 0.2s ease-in-out; }
     </style>
 </head>
-<body class="bg-slate-100 p-4 md:p-8 font-sans">
+<body class="bg-slate-100 p-4 md:p-8 font-sans text-slate-900">
 
     <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-2xl border border-slate-200">
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6">
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
-                <p class="text-sm text-slate-500 font-medium">Gestão Profissional de Injeção e Peças</p>
+                <div class="flex gap-4 mt-1">
+                    <p class="text-sm text-slate-500 font-medium">Oficina e Injeção Eletrônica</p>
+                    <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total Pátio: R$ 0,00</span>
+                </div>
             </div>
             <div class="flex gap-3">
                 <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">
-                    📄 Exportar Relatório
+                    📄 Exportar Histórico Completo
                 </button>
             </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
-            <div class="md:col-span-5 relative">
-                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Pesquisar peça em tempo real..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
+            <div class="md:col-span-4 relative">
+                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Pesquisar peça por nome..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
             </div>
-            <div class="md:col-span-7 flex gap-2 bg-slate-800 p-2 rounded-xl">
-                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-700 text-white outline-none focus:ring-1 focus:ring-emerald-400">
-                <input id="preco" type="number" step="0.01" placeholder="R$ Custo" class="w-24 p-2 rounded-lg bg-slate-700 text-white outline-none">
+            <div class="md:col-span-8 flex gap-2 bg-slate-800 p-2 rounded-xl">
+                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-700 text-white border-none outline-none focus:ring-1 focus:ring-emerald-400">
+                <input id="qtd_inicial" type="number" placeholder="Qtd" class="w-20 p-2 rounded-lg bg-slate-700 text-white border-none outline-none">
+                <input id="preco" type="number" step="0.01" placeholder="Custo R$" class="w-28 p-2 rounded-lg bg-slate-700 text-white border-none outline-none">
                 <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition">Cadastrar</button>
             </div>
         </div>
@@ -43,11 +47,11 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
                     <tr>
-                        <th class="p-4">Descrição do Item</th>
-                        <th class="p-4">Estoque</th>
-                        <th class="p-4">Unitário</th>
+                        <th class="p-4">Item em Estoque</th>
+                        <th class="p-4">Qtd Atual</th>
+                        <th class="p-4">Preço Unit.</th>
                         <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Ações</th>
+                        <th class="p-4 text-center">Movimentar</th>
                     </tr>
                 </thead>
                 <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
@@ -59,31 +63,31 @@
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden modal-transition scale-95 opacity-0" id="modalContent">
             <div id="modalHeader" class="p-4 text-white font-bold text-lg flex justify-between items-center">
                 <span id="modalTitulo">Movimentação</span>
-                <button onclick="fecharModal()" class="text-2xl leading-none">&times;</button>
+                <button onclick="fecharModal()" class="text-2xl">&times;</button>
             </div>
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Quantidade:</label>
-                    <input id="modalQtd" type="number" class="w-full p-3 border rounded-xl outline-none focus:ring-2" value="1">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Quantidade da Operação:</label>
+                    <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl outline-none text-xl font-bold focus:ring-2" value="1">
                 </div>
                 <div id="campoDestino">
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Destino:</label>
-                    <select id="modalDestino" onchange="toggleIdentificacao()" class="w-full p-3 border rounded-xl outline-none focus:ring-2">
-                        <option value="Pátio">Uso no Pátio</option>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Destino da Peça:</label>
+                    <select id="modalDestino" onchange="toggleIdentificacao()" class="w-full p-3 border rounded-xl outline-none">
+                        <option value="Pátio">Uso Interno / Pátio</option>
                         <option value="Caminhão">Caminhão / Cliente</option>
                     </select>
                 </div>
                 <div id="campoIdentificacao" class="hidden">
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Placa ou Cliente:</label>
-                    <input id="modalIdentificacao" type="text" placeholder="Ex: ABC-1234 / Jean" class="w-full p-3 border rounded-xl outline-none focus:ring-2">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Placa ou Nome do Cliente:</label>
+                    <input id="modalIdentificacao" type="text" placeholder="Ex: GHP-2510 / Jean" class="w-full p-3 border rounded-xl outline-none focus:ring-2 ring-emerald-500">
                 </div>
-                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg">Confirmar</button>
+                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg">Confirmar Agora</button>
             </div>
         </div>
     </div>
 
     <script>
-        // MANTÉM AS MESMAS CHAVES PARA NÃO PERDER DADOS
+        // CARGA DOS DADOS EXISTENTES
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
         let indexAtual = null;
@@ -101,11 +105,14 @@
         function renderizar() {
             const lista = document.getElementById('lista-estoque');
             const termoBusca = document.getElementById('busca').value.toLowerCase();
+            let totalGeral = 0;
             lista.innerHTML = '';
 
             estoque.forEach((item, index) => {
+                const subtotal = item.qtd * item.preco;
+                totalGeral += subtotal;
+
                 if (item.nome.toLowerCase().includes(termoBusca)) {
-                    const subtotal = item.qtd * item.preco;
                     const alerta = item.qtd <= 1 ? 'alerta-ultimo' : 'text-slate-700';
 
                     lista.innerHTML += `
@@ -113,36 +120,42 @@
                             <td class="p-4 font-bold text-slate-800">${item.nome}</td>
                             <td class="p-4">
                                 <span class="${alerta} text-lg">${item.qtd}</span>
-                                ${item.qtd <= 1 ? '<span class="text-[10px] block text-red-500 font-black italic">BAIXO ESTOQUE</span>' : ''}
+                                ${item.qtd <= 1 ? '<span class="text-[10px] block text-red-500 font-black italic">BAIXO</span>' : ''}
                             </td>
-                            <td class="p-4 text-slate-500 font-medium">R$ ${item.preco.toFixed(2)}</td>
+                            <td class="p-4 text-slate-500 font-medium text-sm">R$ ${item.preco.toFixed(2)}</td>
                             <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
                             <td class="p-4">
                                 <div class="flex justify-center gap-2">
-                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-red-600 shadow-md transition">↓ Saída</button>
-                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">↑ Entrada</button>
+                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-red-600 shadow-md transition">↓ Saída</button>
+                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">↑ Entrada</button>
                                     <button onclick="remover(${index})" class="ml-4 text-slate-300 hover:text-red-500 transition">🗑️</button>
                                 </div>
                             </td>
                         </tr>`;
                 }
             });
+            document.getElementById('valorTotalPatio').innerText = `Total Pátio: R$ ${totalGeral.toFixed(2)}`;
             localStorage.setItem('meuEstoque', JSON.stringify(estoque));
         }
 
         function adicionar() {
             const n = document.getElementById('nome').value.trim();
+            const q = parseInt(document.getElementById('qtd_inicial').value) || 0;
             const p = parseFloat(document.getElementById('preco').value);
+
             if(n && !isNaN(p)) {
-                estoque.push({nome: n, qtd: 0, preco: p});
-                registrarMovimentacao(n, 0, "Cadastro", "Item novo");
+                estoque.push({nome: n, qtd: q, preco: p});
+                registrarMovimentacao(n, q, "Cadastro", "Entrada Inicial de Estoque");
+                
                 document.getElementById('nome').value = '';
+                document.getElementById('qtd_inicial').value = '';
                 document.getElementById('preco').value = '';
                 renderizar();
+            } else {
+                alert("Preencha Nome e Preço corretamente!");
             }
         }
 
-        // --- LÓGICA DO MODAL PROFISSIONAL ---
         function abrirModal(index, tipo) {
             indexAtual = index;
             tipoAtual = tipo;
@@ -157,22 +170,19 @@
             document.getElementById('modalIdentificacao').value = '';
             
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-            }, 10);
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); }, 10);
 
             if (tipo === 'Saída') {
                 header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-red-600";
-                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-red-600 hover:bg-red-700 transition";
+                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-red-600 hover:bg-red-700 transition shadow-lg";
                 document.getElementById('campoDestino').classList.remove('hidden');
                 toggleIdentificacao();
             } else {
                 header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-blue-600";
-                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-blue-600 hover:bg-blue-700 transition";
+                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-blue-600 hover:bg-blue-700 transition shadow-lg";
                 document.getElementById('campoDestino').classList.add('hidden');
                 document.getElementById('campoIdentificacao').classList.add('hidden');
             }
-            
             btn.onclick = confirmarMovimentacao;
         }
 
@@ -186,59 +196,48 @@
             const modal = document.getElementById('modalMovimentacao');
             const content = document.getElementById('modalContent');
             content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
         }
 
         function confirmarMovimentacao() {
             const item = estoque[indexAtual];
-            const qtd = parseInt(document.getElementById('modalQtd').value);
+            const qtdMov = parseInt(document.getElementById('modalQtd').value);
             const destino = document.getElementById('modalDestino').value;
             const ident = document.getElementById('modalIdentificacao').value;
 
-            if (isNaN(qtd) || qtd <= 0) return alert("Por favor, insira uma quantidade válida.");
+            if (isNaN(qtdMov) || qtdMov <= 0) return alert("Quantidade inválida!");
 
             if (tipoAtual === 'Saída') {
-                if (qtd > item.qtd) return alert("Estoque insuficiente para esta saída!");
-                item.qtd -= qtd;
+                if (qtdMov > item.qtd) return alert(`Estoque insuficiente! Saldo: ${item.qtd}`);
+                item.qtd -= qtdMov;
                 const detalhe = destino === 'Caminhão' ? `Caminhão: ${ident}` : "Uso no Pátio";
-                registrarMovimentacao(item.nome, qtd, "Saída", detalhe);
+                registrarMovimentacao(item.nome, qtdMov, "Saída", detalhe);
             } else {
-                item.qtd += qtd;
-                registrarMovimentacao(item.nome, qtd, "Entrada", "Reposição de Estoque");
+                item.qtd += qtdMov;
+                registrarMovimentacao(item.nome, qtdMov, "Entrada", "Entrada Avulsa");
             }
-
             fecharModal();
             renderizar();
         }
 
         function remover(index) {
-            if(confirm("Deseja realmente excluir este item permanentemente?")) { 
-                estoque.splice(index, 1); 
-                renderizar(); 
-            }
+            if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); }
         }
 
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.setFontSize(18);
-            doc.text("Relatório Diesel Control Pro", 14, 20);
-            doc.setFontSize(10);
-            doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
-
+            doc.text("Relatorio Diesel Control Pro", 14, 20);
             doc.autoTable({
-                head: [["Item", "Qtd", "Tipo", "Destino/Obs", "Data/Hora"]],
+                head: [["Peça", "Qtd Operada", "Tipo", "Destino", "Data/Hora"]],
                 body: historico.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, `${h.data} ${h.hora}`]),
-                startY: 35,
+                startY: 30,
                 theme: 'grid',
                 headStyles: {fillColor: [31, 41, 55]}
             });
-            doc.save("balanco_diesel.pdf");
+            doc.save("balanco_oficina.pdf");
         }
 
-        // Carregamento inicial
         renderizar();
     </script>
 </body>
