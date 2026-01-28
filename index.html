@@ -8,50 +8,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        .alerta-ultimo { animation: pulse 1.5s infinite; color: #dc2626; font-weight: bold; }
+        .alerta-baixo { animation: pulse 2s infinite; color: #ef4444; font-weight: bold; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .modal-transition { transition: all 0.2s ease-in-out; }
     </style>
 </head>
-<body class="bg-slate-100 p-4 md:p-8 font-sans text-slate-900">
+<body class="bg-slate-100 p-2 md:p-8 font-sans text-slate-900">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-2xl border border-slate-200">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6">
+    <div class="max-w-6xl mx-auto bg-white p-4 md:p-6 rounded-2xl shadow-2xl border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-6">
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
                 <div class="flex gap-4 mt-1">
-                    <p class="text-sm text-slate-500 font-medium">Oficina e Injeção Eletrônica</p>
                     <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total Pátio: R$ 0,00</span>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">
-                    📄 Exportar Histórico Completo
-                </button>
+            <div class="flex gap-2">
+                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition">💾 Backup Dados</button>
+                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-emerald-700 transition">📄 Relatório Mensal</button>
             </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
             <div class="md:col-span-4 relative">
-                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Pesquisar peça por nome..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
+                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Localizar peça..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
             </div>
-            <div class="md:col-span-8 flex gap-2 bg-slate-800 p-2 rounded-xl">
-                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-700 text-white border-none outline-none focus:ring-1 focus:ring-emerald-400">
-                <input id="qtd_inicial" type="number" placeholder="Qtd" class="w-20 p-2 rounded-lg bg-slate-700 text-white border-none outline-none">
-                <input id="preco" type="number" step="0.01" placeholder="Custo R$" class="w-28 p-2 rounded-lg bg-slate-700 text-white border-none outline-none">
+            <div class="md:col-span-8 flex gap-2 bg-slate-900 p-2 rounded-xl">
+                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none focus:ring-1 focus:ring-emerald-400">
+                <input id="qtd_inicial" type="number" placeholder="Qtd" class="w-20 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
+                <input id="preco" type="number" step="0.01" placeholder="R$ Custo" class="w-24 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
                 <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition">Cadastrar</button>
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
+                <thead class="bg-slate-800 text-slate-200 uppercase text-[11px] font-bold">
                     <tr>
-                        <th class="p-4">Item em Estoque</th>
-                        <th class="p-4">Qtd Atual</th>
+                        <th class="p-4">Descrição do Item</th>
+                        <th class="p-4">Estoque</th>
                         <th class="p-4">Preço Unit.</th>
                         <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Movimentar</th>
+                        <th class="p-4 text-center">Ações de Saída/Entrada</th>
                     </tr>
                 </thead>
                 <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
@@ -60,43 +57,48 @@
     </div>
 
     <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden modal-transition scale-95 opacity-0" id="modalContent">
-            <div id="modalHeader" class="p-4 text-white font-bold text-lg flex justify-between items-center">
-                <span id="modalTitulo">Movimentação</span>
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" id="modalContent">
+            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800">
+                <span id="modalTitulo">Movimentar Peça</span>
                 <button onclick="fecharModal()" class="text-2xl">&times;</button>
             </div>
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Quantidade da Operação:</label>
-                    <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl outline-none text-xl font-bold focus:ring-2" value="1">
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Quantidade:</label>
+                    <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none focus:border-emerald-500" value="1">
                 </div>
-                <div id="campoDestino">
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Destino da Peça:</label>
-                    <select id="modalDestino" onchange="toggleIdentificacao()" class="w-full p-3 border rounded-xl outline-none">
-                        <option value="Pátio">Uso Interno / Pátio</option>
-                        <option value="Caminhão">Caminhão / Cliente</option>
+                
+                <div id="areaSaida">
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Para onde vai?</label>
+                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-3 border-2 rounded-xl outline-none mb-4 font-bold">
+                        <option value="Pátio">Uso no Pátio (Interno)</option>
+                        <option value="Veículo">Veículo (Cliente/Placa)</option>
                     </select>
+
+                    <div id="campoVeiculo" class="hidden">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Placa ou Nome do Cliente:</label>
+                        <input id="modalIdentificacao" type="text" placeholder="Ex: ABC-1234 ou Sr. Jean" class="w-full p-3 border-2 rounded-xl outline-none border-emerald-500 font-bold uppercase">
+                    </div>
                 </div>
-                <div id="campoIdentificacao" class="hidden">
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Placa ou Nome do Cliente:</label>
-                    <input id="modalIdentificacao" type="text" placeholder="Ex: GHP-2510 / Jean" class="w-full p-3 border rounded-xl outline-none focus:ring-2 ring-emerald-500">
-                </div>
-                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg">Confirmar Agora</button>
+
+                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg mt-4"></button>
             </div>
         </div>
     </div>
 
     <script>
-        // CARGA DOS DADOS EXISTENTES
+        // CARREGAMENTO SEGURO - NÃO PERDE OS DADOS CADASTRADOS
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
         let indexAtual = null;
         let tipoAtual = null;
 
         function registrarMovimentacao(nome, qtd, tipo, detalhes = "") {
+            const agora = new Date();
             historico.push({
-                data: new Date().toLocaleDateString('pt-BR'),
-                hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+                data: agora.toLocaleDateString('pt-BR'),
+                hora: agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+                mesAno: agora.toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'}),
                 nome, qtd, tipo, detalhes
             });
             localStorage.setItem('meuHistorico', JSON.stringify(historico));
@@ -113,21 +115,21 @@
                 totalGeral += subtotal;
 
                 if (item.nome.toLowerCase().includes(termoBusca)) {
-                    const alerta = item.qtd <= 1 ? 'alerta-ultimo' : 'text-slate-700';
-
                     lista.innerHTML += `
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="p-4 font-bold text-slate-800">${item.nome}</td>
+                            <td class="p-4 font-bold text-slate-800 uppercase text-sm">${item.nome}</td>
+                            <td class="p-4 font-bold ${item.qtd <= 1 ? 'alerta-baixo' : 'text-slate-600'} text-lg">${item.qtd}</td>
                             <td class="p-4">
-                                <span class="${alerta} text-lg">${item.qtd}</span>
-                                ${item.qtd <= 1 ? '<span class="text-[10px] block text-red-500 font-black italic">BAIXO</span>' : ''}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-slate-500 font-medium text-xs">R$ ${item.preco.toFixed(2)}</span>
+                                    <button onclick="editarPreco(${index})" class="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-bold hover:bg-slate-200">EDITAR</button>
+                                </div>
                             </td>
-                            <td class="p-4 text-slate-500 font-medium text-sm">R$ ${item.preco.toFixed(2)}</td>
                             <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
                             <td class="p-4">
                                 <div class="flex justify-center gap-2">
-                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-red-600 shadow-md transition">↓ Saída</button>
-                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">↑ Entrada</button>
+                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-[10px] font-black hover:bg-red-600 shadow-sm transition">SAÍDA</button>
+                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black hover:bg-blue-700 shadow-sm transition">ENTRADA</button>
                                     <button onclick="remover(${index})" class="ml-4 text-slate-300 hover:text-red-500 transition">🗑️</button>
                                 </div>
                             </td>
@@ -145,14 +147,21 @@
 
             if(n && !isNaN(p)) {
                 estoque.push({nome: n, qtd: q, preco: p});
-                registrarMovimentacao(n, q, "Cadastro", "Entrada Inicial de Estoque");
-                
+                registrarMovimentacao(n, q, "Cadastro", "Entrada Inicial");
                 document.getElementById('nome').value = '';
                 document.getElementById('qtd_inicial').value = '';
                 document.getElementById('preco').value = '';
                 renderizar();
             } else {
-                alert("Preencha Nome e Preço corretamente!");
+                alert("Preencha o Nome e o Preço para cadastrar!");
+            }
+        }
+
+        function editarPreco(index) {
+            const novo = prompt(`Novo preço para: ${estoque[index].nome}`, estoque[index].preco);
+            if (novo !== null && !isNaN(novo)) {
+                estoque[index].preco = parseFloat(novo);
+                renderizar();
             }
         }
 
@@ -161,83 +170,96 @@
             tipoAtual = tipo;
             const item = estoque[index];
             const modal = document.getElementById('modalMovimentacao');
-            const content = document.getElementById('modalContent');
-            const header = document.getElementById('modalHeader');
             const btn = document.getElementById('btnConfirmar');
+            const areaSaida = document.getElementById('areaSaida');
             
             document.getElementById('modalTitulo').innerText = `${tipo}: ${item.nome}`;
             document.getElementById('modalQtd').value = 1;
             document.getElementById('modalIdentificacao').value = '';
             
             modal.classList.remove('hidden');
-            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); }, 10);
 
             if (tipo === 'Saída') {
-                header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-red-600";
-                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-red-600 hover:bg-red-700 transition shadow-lg";
-                document.getElementById('campoDestino').classList.remove('hidden');
-                toggleIdentificacao();
+                btn.innerText = "Confirmar Saída";
+                btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-500 hover:bg-red-600 shadow-lg";
+                areaSaida.classList.remove('hidden');
+                toggleVeiculo();
             } else {
-                header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-blue-600";
-                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-blue-600 hover:bg-blue-700 transition shadow-lg";
-                document.getElementById('campoDestino').classList.add('hidden');
-                document.getElementById('campoIdentificacao').classList.add('hidden');
+                btn.innerText = "Confirmar Entrada";
+                btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 hover:bg-blue-700 shadow-lg";
+                areaSaida.classList.add('hidden');
             }
-            btn.onclick = confirmarMovimentacao;
+            btn.onclick = confirmarAcao;
         }
 
-        function toggleIdentificacao() {
-            const destino = document.getElementById('modalDestino').value;
-            const campoId = document.getElementById('campoIdentificacao');
-            destino === 'Caminhão' ? campoId.classList.remove('hidden') : campoId.classList.add('hidden');
+        function toggleVeiculo() {
+            const d = document.getElementById('modalDestino').value;
+            document.getElementById('campoVeiculo').className = (d === 'Veículo') ? 'block' : 'hidden';
         }
 
         function fecharModal() {
-            const modal = document.getElementById('modalMovimentacao');
-            const content = document.getElementById('modalContent');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+            document.getElementById('modalMovimentacao').classList.add('hidden');
         }
 
-        function confirmarMovimentacao() {
+        function confirmarAcao() {
             const item = estoque[indexAtual];
-            const qtdMov = parseInt(document.getElementById('modalQtd').value);
-            const destino = document.getElementById('modalDestino').value;
-            const ident = document.getElementById('modalIdentificacao').value;
-
-            if (isNaN(qtdMov) || qtdMov <= 0) return alert("Quantidade inválida!");
+            const q = parseInt(document.getElementById('modalQtd').value);
+            
+            if (isNaN(q) || q <= 0) return alert("Quantidade inválida");
 
             if (tipoAtual === 'Saída') {
-                if (qtdMov > item.qtd) return alert(`Estoque insuficiente! Saldo: ${item.qtd}`);
-                item.qtd -= qtdMov;
-                const detalhe = destino === 'Caminhão' ? `Caminhão: ${ident}` : "Uso no Pátio";
-                registrarMovimentacao(item.nome, qtdMov, "Saída", detalhe);
+                if (q > item.qtd) return alert("Estoque insuficiente!");
+                item.qtd -= q;
+                const dest = document.getElementById('modalDestino').value;
+                const ident = document.getElementById('modalIdentificacao').value;
+                const detalhe = (dest === 'Veículo') ? `VEÍCULO: ${ident}` : "PÁTIO (INTERNO)";
+                registrarMovimentacao(item.nome, q, "Saída", detalhe);
             } else {
-                item.qtd += qtdMov;
-                registrarMovimentacao(item.nome, qtdMov, "Entrada", "Entrada Avulsa");
+                item.qtd += q;
+                registrarMovimentacao(item.nome, q, "Entrada", "Reposição de Estoque");
             }
+
             fecharModal();
             renderizar();
         }
 
         function remover(index) {
-            if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); }
+            if(confirm("Deseja excluir permanentemente este item?")) {
+                estoque.splice(index, 1);
+                renderizar();
+            }
+        }
+
+        function fazerBackup() {
+            const dados = { estoque, historico };
+            const blob = new Blob([JSON.stringify(dados)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `backup_oficina_${new Date().toLocaleDateString('pt-BR')}.json`;
+            a.click();
         }
 
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Relatorio Diesel Control Pro", 14, 20);
+            const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
+            
+            doc.setFontSize(16);
+            doc.text(`RELATÓRIO MENSAL DIESEL - ${mes}`, 14, 20);
+            
+            const dadosMes = historico.filter(h => h.mesAno === mes);
+
             doc.autoTable({
-                head: [["Peça", "Qtd Operada", "Tipo", "Destino", "Data/Hora"]],
-                body: historico.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, `${h.data} ${h.hora}`]),
+                head: [["Item", "Qtd", "Tipo", "Destino/Detalhe", "Data", "Hora"]],
+                body: dadosMes.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data, h.hora]),
                 startY: 30,
                 theme: 'grid',
-                headStyles: {fillColor: [31, 41, 55]}
+                headStyles: { fillColor: [31, 41, 55] }
             });
-            doc.save("balanco_oficina.pdf");
+            doc.save(`relatorio_mensal_${mes.replace('/','_')}.pdf`);
         }
 
+        // Início automático
         renderizar();
     </script>
 </body>
