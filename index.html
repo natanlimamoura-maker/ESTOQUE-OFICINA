@@ -3,234 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estoque Pro - Oficina & Pátio</title>
+    <title>Diesel Control Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         .alerta-ultimo { animation: pulse 1.5s infinite; color: #dc2626; font-weight: bold; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .modal-transition { transition: all 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-50 p-4 md:p-8">
+<body class="bg-slate-100 p-4 md:p-8 font-sans">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-2xl border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6">
             <div>
-                <h1 class="text-3xl font-black text-gray-800">🛠️ Sistema de Fluxo Diesel</h1>
-                <p class="text-sm text-gray-500">Gestão de Peças, Pátio e Ordens de Serviço</p>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
+                <p class="text-sm text-slate-500 font-medium">Gestão Profissional de Injeção e Peças</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="limparHistorico()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-300 transition text-sm">Limpar Histórico</button>
+            <div class="flex gap-3">
                 <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">
-                    📄 Exportar Balanço Detalhado
+                    📄 Exportar Relatório
                 </button>
             </div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-gray-800 p-6 rounded-xl shadow-inner">
-            <input id="nome" type="text" placeholder="Nome da Peça" class="p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-700 text-white placeholder-gray-400">
-            <input id="qtd" type="number" placeholder="Quantidade Inicial" class="p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-700 text-white placeholder-gray-400">
-            <input id="preco" type="number" step="0.01" placeholder="Preço de Custo R$" class="p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-700 text-white placeholder-gray-400">
-            <button onclick="adicionar()" class="bg-emerald-500 text-white font-black p-3 rounded-lg hover:bg-emerald-400 transition uppercase tracking-wider">Cadastrar Item</button>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
+            <div class="md:col-span-5 relative">
+                <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Pesquisar peça em tempo real..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
+            </div>
+            <div class="md:col-span-7 flex gap-2 bg-slate-800 p-2 rounded-xl">
+                <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-700 text-white outline-none focus:ring-1 focus:ring-emerald-400">
+                <input id="preco" type="number" step="0.01" placeholder="R$ Custo" class="w-24 p-2 rounded-lg bg-slate-700 text-white outline-none">
+                <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition">Cadastrar</button>
+            </div>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-            <table class="w-full text-left">
-                <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+        <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-800 text-slate-200 uppercase text-xs font-bold">
                     <tr>
-                        <th class="p-4">Item</th>
-                        <th class="p-4">Qtd Atual</th>
-                        <th class="p-4">Preço Unit.</th>
+                        <th class="p-4">Descrição do Item</th>
+                        <th class="p-4">Estoque</th>
+                        <th class="p-4">Unitário</th>
                         <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Ações de Movimentação</th>
+                        <th class="p-4 text-center">Ações</th>
                     </tr>
                 </thead>
-                <tbody id="lista-estoque" class="divide-y divide-gray-100"></tbody>
+                <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
             </table>
         </div>
     </div>
 
+    <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden modal-transition scale-95 opacity-0" id="modalContent">
+            <div id="modalHeader" class="p-4 text-white font-bold text-lg flex justify-between items-center">
+                <span id="modalTitulo">Movimentação</span>
+                <button onclick="fecharModal()" class="text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Quantidade:</label>
+                    <input id="modalQtd" type="number" class="w-full p-3 border rounded-xl outline-none focus:ring-2" value="1">
+                </div>
+                <div id="campoDestino">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Destino:</label>
+                    <select id="modalDestino" onchange="toggleIdentificacao()" class="w-full p-3 border rounded-xl outline-none focus:ring-2">
+                        <option value="Pátio">Uso no Pátio</option>
+                        <option value="Caminhão">Caminhão / Cliente</option>
+                    </select>
+                </div>
+                <div id="campoIdentificacao" class="hidden">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Placa ou Cliente:</label>
+                    <input id="modalIdentificacao" type="text" placeholder="Ex: ABC-1234 / Jean" class="w-full p-3 border rounded-xl outline-none focus:ring-2">
+                </div>
+                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // MANTÉM AS MESMAS CHAVES PARA NÃO PERDER DADOS
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
+        let indexAtual = null;
+        let tipoAtual = null;
 
         function registrarMovimentacao(nome, qtd, tipo, detalhes = "") {
-            const agora = new Date();
-            const registro = {
-                data: agora.toLocaleDateString('pt-BR'),
-                hora: agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-                nome: nome,
-                qtd: Math.abs(qtd),
-                tipo: tipo,
-                detalhes: detalhes
-            };
-            historico.push(registro);
+            historico.push({
+                data: new Date().toLocaleDateString('pt-BR'),
+                hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+                nome, qtd, tipo, detalhes
+            });
             localStorage.setItem('meuHistorico', JSON.stringify(historico));
         }
 
         function renderizar() {
             const lista = document.getElementById('lista-estoque');
+            const termoBusca = document.getElementById('busca').value.toLowerCase();
             lista.innerHTML = '';
 
             estoque.forEach((item, index) => {
-                const subtotal = item.qtd * item.preco;
-                const alerta = item.qtd === 1 ? 'alerta-ultimo' : 'text-gray-700';
+                if (item.nome.toLowerCase().includes(termoBusca)) {
+                    const subtotal = item.qtd * item.preco;
+                    const alerta = item.qtd <= 1 ? 'alerta-ultimo' : 'text-slate-700';
 
-                lista.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-4 font-bold text-gray-800">${item.nome}</td>
-                        <td class="p-4">
-                            <span class="${alerta}">${item.qtd}</span>
-                            ${item.qtd <= 1 && item.qtd > 0 ? '<span class="text-[10px] block text-red-500 font-bold">CRÍTICO!</span>' : ''}
-                            ${item.qtd === 0 ? '<span class="text-[10px] block text-gray-400 font-bold">ZERADO</span>' : ''}
-                        </td>
-                        <td class="p-4 text-gray-500 text-sm">R$ ${item.preco.toFixed(2)}</td>
-                        <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
-                        <td class="p-4">
-                            <div class="flex justify-center gap-2">
-                                <button onclick="alterarQtd(${index}, -1)" class="bg-red-100 text-red-600 px-4 py-1 rounded-md font-bold hover:bg-red-200 transition">↓ Saída</button>
-                                <button onclick="alterarQtd(${index}, 1)" class="bg-blue-100 text-blue-600 px-4 py-1 rounded-md font-bold hover:bg-blue-200 transition">↑ Entrada</button>
-                                <button onclick="remover(${index})" class="ml-4 text-gray-300 hover:text-red-500 text-xs italic underline">Remover</button>
-                            </div>
-                        </td>
-                    </tr>`;
+                    lista.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-4 font-bold text-slate-800">${item.nome}</td>
+                            <td class="p-4">
+                                <span class="${alerta} text-lg">${item.qtd}</span>
+                                ${item.qtd <= 1 ? '<span class="text-[10px] block text-red-500 font-black italic">BAIXO ESTOQUE</span>' : ''}
+                            </td>
+                            <td class="p-4 text-slate-500 font-medium">R$ ${item.preco.toFixed(2)}</td>
+                            <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
+                            <td class="p-4">
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-red-600 shadow-md transition">↓ Saída</button>
+                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">↑ Entrada</button>
+                                    <button onclick="remover(${index})" class="ml-4 text-slate-300 hover:text-red-500 transition">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                }
             });
             localStorage.setItem('meuEstoque', JSON.stringify(estoque));
         }
 
         function adicionar() {
             const n = document.getElementById('nome').value.trim();
-            const q = parseInt(document.getElementById('qtd').value);
             const p = parseFloat(document.getElementById('preco').value);
-
-            if(n && q >= 0 && p >= 0) {
-                const item = estoque.find(i => i.nome.toLowerCase() === n.toLowerCase());
-                if(item) {
-                    item.qtd += q;
-                    item.preco = p;
-                } else {
-                    estoque.push({nome: n, qtd: q, preco: p});
-                }
-                registrarMovimentacao(n, q, "Entrada", "Cadastro Inicial/Reposição");
-                
+            if(n && !isNaN(p)) {
+                estoque.push({nome: n, qtd: 0, preco: p});
+                registrarMovimentacao(n, 0, "Cadastro", "Item novo");
                 document.getElementById('nome').value = '';
-                document.getElementById('qtd').value = '';
                 document.getElementById('preco').value = '';
                 renderizar();
-            } else {
-                alert("Preencha todos os campos corretamente!");
             }
         }
 
-        function alterarQtd(index, valor) {
+        // --- LÓGICA DO MODAL PROFISSIONAL ---
+        function abrirModal(index, tipo) {
+            indexAtual = index;
+            tipoAtual = tipo;
             const item = estoque[index];
+            const modal = document.getElementById('modalMovimentacao');
+            const content = document.getElementById('modalContent');
+            const header = document.getElementById('modalHeader');
+            const btn = document.getElementById('btnConfirmar');
             
-            if (valor < 0) { // LÓGICA DE SAÍDA
-                if (item.qtd <= 0) return alert("Estoque já está zerado!");
+            document.getElementById('modalTitulo').innerText = `${tipo}: ${item.nome}`;
+            document.getElementById('modalQtd').value = 1;
+            document.getElementById('modalIdentificacao').value = '';
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            }, 10);
 
-                const qtdInput = prompt(`Quantas unidades de "${item.nome}" para saída? (Estoque atual: ${item.qtd})`, "1");
-                if (!qtdInput) return;
-                const qtd = parseInt(qtdInput);
+            if (tipo === 'Saída') {
+                header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-red-600";
+                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-red-600 hover:bg-red-700 transition";
+                document.getElementById('campoDestino').classList.remove('hidden');
+                toggleIdentificacao();
+            } else {
+                header.className = "p-4 text-white font-bold text-lg flex justify-between items-center bg-blue-600";
+                btn.className = "w-full p-4 rounded-xl text-white font-black uppercase bg-blue-600 hover:bg-blue-700 transition";
+                document.getElementById('campoDestino').classList.add('hidden');
+                document.getElementById('campoIdentificacao').classList.add('hidden');
+            }
+            
+            btn.onclick = confirmarMovimentacao;
+        }
 
-                if (isNaN(qtd) || qtd <= 0 || qtd > item.qtd) {
-                    alert("Quantidade inválida ou superior ao estoque!");
-                    return;
-                }
+        function toggleIdentificacao() {
+            const destino = document.getElementById('modalDestino').value;
+            const campoId = document.getElementById('campoIdentificacao');
+            destino === 'Caminhão' ? campoId.classList.remove('hidden') : campoId.classList.add('hidden');
+        }
 
-                const destino = prompt("Destino da saída:\n1 - Pátio\n2 - Caminhão / Cliente", "1");
-                let infoAdicional = "";
+        function fecharModal() {
+            const modal = document.getElementById('modalMovimentacao');
+            const content = document.getElementById('modalContent');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
 
-                if (destino === "1") {
-                    infoAdicional = "Uso no Pátio";
-                } else if (destino === "2") {
-                    const identificacao = prompt("Informe a PLACA do Caminhão ou NOME do Cliente:");
-                    if (!identificacao) return;
-                    infoAdicional = `Caminhão/Cliente: ${identificacao}`;
-                } else {
-                    alert("Opção inválida!");
-                    return;
-                }
+        function confirmarMovimentacao() {
+            const item = estoque[indexAtual];
+            const qtd = parseInt(document.getElementById('modalQtd').value);
+            const destino = document.getElementById('modalDestino').value;
+            const ident = document.getElementById('modalIdentificacao').value;
 
+            if (isNaN(qtd) || qtd <= 0) return alert("Por favor, insira uma quantidade válida.");
+
+            if (tipoAtual === 'Saída') {
+                if (qtd > item.qtd) return alert("Estoque insuficiente para esta saída!");
                 item.qtd -= qtd;
-                registrarMovimentacao(item.nome, qtd, "Saída", infoAdicional);
-                
-            } else { // LÓGICA DE ENTRADA
-                const qtdIn = prompt(`Quantidade de "${item.nome}" a adicionar:`, "1");
-                if (!qtdIn) return;
-                const valorIn = parseInt(qtdIn);
-                
-                if(isNaN(valorIn) || valorIn <= 0) return alert("Valor inválido");
-
-                item.qtd += valorIn;
-                registrarMovimentacao(item.nome, valorIn, "Entrada", "Entrada Manual");
+                const detalhe = destino === 'Caminhão' ? `Caminhão: ${ident}` : "Uso no Pátio";
+                registrarMovimentacao(item.nome, qtd, "Saída", detalhe);
+            } else {
+                item.qtd += qtd;
+                registrarMovimentacao(item.nome, qtd, "Entrada", "Reposição de Estoque");
             }
 
+            fecharModal();
             renderizar();
         }
 
         function remover(index) {
-            if(confirm("Excluir produto definitivamente do sistema?")) {
-                estoque.splice(index, 1);
-                renderizar();
-            }
-        }
-
-        function limparHistorico() {
-            if(confirm("Deseja apagar todo o histórico de movimentações permanentemente?")) {
-                historico = [];
-                localStorage.setItem('meuHistorico', JSON.stringify(historico));
-                alert("Histórico limpo!");
+            if(confirm("Deseja realmente excluir este item permanentemente?")) { 
+                estoque.splice(index, 1); 
+                renderizar(); 
             }
         }
 
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
-            doc.setFontSize(20);
-            doc.text("RELATÓRIO DE ESTOQUE E MOVIMENTAÇÃO", 14, 20);
+            doc.setFontSize(18);
+            doc.text("Relatório Diesel Control Pro", 14, 20);
             doc.setFontSize(10);
             doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
 
-            // TABELA 1: ESTOQUE ATUAL
-            doc.setFontSize(14);
-            doc.text("1. Situação Atual do Estoque", 14, 40);
-            const dadosEstoque = estoque.map(i => [i.nome, i.qtd, `R$ ${i.preco.toFixed(2)}`, `R$ ${(i.qtd*i.preco).toFixed(2)}`]);
             doc.autoTable({
-                head: [["Item", "Qtd", "Preço Unit.", "Total em Peça"]],
-                body: dadosEstoque,
-                startY: 45,
-                headStyles: {fillColor: [16, 185, 129]}
-            });
-
-            // TABELA 2: HISTÓRICO COM CORES
-            const finalY = doc.lastAutoTable.finalY + 15;
-            doc.text("2. Histórico de Entradas e Saídas (Destinos)", 14, finalY);
-            
-            const dadosHistorico = historico.map(h => [h.data, h.hora, h.nome, h.tipo, h.qtd, h.detalhes]);
-            
-            doc.autoTable({
-                head: [["Data", "Hora", "Produto", "Operação", "Qtd", "Destino / Obs"]],
-                body: dadosHistorico,
-                startY: finalY + 5,
+                head: [["Item", "Qtd", "Tipo", "Destino/Obs", "Data/Hora"]],
+                body: historico.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, `${h.data} ${h.hora}`]),
+                startY: 35,
                 theme: 'grid',
-                headStyles: {fillColor: [31, 41, 55]},
-                didParseCell: function (data) {
-                    // Se for Saída para Caminhão, pinta a linha de um tom leve de vermelho
-                    if (data.row.section === 'body') {
-                        const tipo = data.row.cells[3].raw;
-                        const detalhes = data.row.cells[5].raw;
-                        if (tipo === "Saída" && detalhes.includes("Caminhão")) {
-                            data.cell.styles.textColor = [200, 0, 0]; // Texto vermelho para saídas de caminhão
-                        }
-                    }
-                }
+                headStyles: {fillColor: [31, 41, 55]}
             });
-
-            doc.save("relatorio_diesel_completo.pdf");
+            doc.save("balanco_diesel.pdf");
         }
 
+        // Carregamento inicial
         renderizar();
     </script>
 </body>
