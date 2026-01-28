@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Control Pro - Oficina & QR</title>
+    <title>Diesel Control Pro - Segurança Total</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         .alerta-baixo { animation: pulse 2s infinite; color: #ef4444; font-weight: bold; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -24,9 +23,9 @@
                 </div>
             </div>
             <div class="flex flex-wrap gap-2 justify-center">
-                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-black transition">💾 BACKUP</button>
-                <button onclick="gerarQRCode()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition">📱 QR RELATÓRIO</button>
-                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-lg hover:bg-emerald-700 transition">📄 PDF MENSAL</button>
+                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-black transition">💾 SALVAR BACKUP FORA DO PC</button>
+                <button onclick="gerarPDF(true)" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition">📱 VER RELATÓRIO NO CELULAR</button>
+                <button onclick="gerarPDF(false)" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-lg hover:bg-emerald-700 transition">📄 BAIXAR PDF MENSAL</button>
             </div>
         </div>
         
@@ -58,26 +57,16 @@
         </div>
     </div>
 
-    <div id="modalQR" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[100]">
-        <div class="bg-white p-6 rounded-3xl text-center space-y-4 max-w-sm w-full shadow-2xl">
-            <h2 class="font-black text-xl text-slate-800">Histórico Mensal QR</h2>
-            <div id="qrcode" class="flex justify-center p-4 bg-white border-4 border-slate-50 rounded-2xl"></div>
-            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Aponte a câmera para ver o resumo do mês</p>
-            <button onclick="fecharQR()" class="w-full bg-slate-800 text-white p-3 rounded-xl font-bold hover:bg-black">FECHAR</button>
-        </div>
-    </div>
-
     <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800 uppercase text-sm tracking-widest">
+            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800">
                 <span id="modalTitulo">Movimentar</span>
                 <button onclick="fecharModal()" class="text-2xl">&times;</button>
             </div>
             <div class="p-6 space-y-4">
                 <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none border-slate-200 focus:border-emerald-500" value="1">
-                
                 <div id="areaSaida">
-                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-4 border-2 rounded-xl outline-none mb-4 font-bold bg-slate-50">
+                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-4 border-2 rounded-xl outline-none mb-4 font-bold bg-slate-50 text-sm">
                         <option value="Pátio">📦 USO NO PÁTIO (INTERNO)</option>
                         <option value="Veículo">🚚 VEÍCULO (CLIENTE/PLACA)</option>
                     </select>
@@ -85,13 +74,13 @@
                         <input id="modalIdentificacao" type="text" placeholder="PLACA OU NOME DO CLIENTE" class="w-full p-4 border-2 rounded-xl outline-none border-emerald-500 font-bold uppercase placeholder:text-slate-300">
                     </div>
                 </div>
-
                 <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg mt-4"></button>
             </div>
         </div>
     </div>
 
     <script>
+        // MANTENDO AS MESMAS CHAVES PARA NÃO QUEBRAR OS DADOS
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
         let indexAtual = null, tipoAtual = null;
@@ -102,7 +91,8 @@
                 data: agora.toLocaleDateString('pt-BR'),
                 hora: agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
                 mesAno: agora.toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'}),
-                nome, qtd, tipo, detalhes
+                nome: nome.toUpperCase(), 
+                qtd, tipo, detalhes: detalhes.toUpperCase()
             });
             localStorage.setItem('meuHistorico', JSON.stringify(historico));
         }
@@ -148,7 +138,7 @@
             const p = parseFloat(document.getElementById('preco').value);
             if(n && !isNaN(p)) {
                 estoque.push({nome: n.toUpperCase(), qtd: q, preco: p});
-                registrarMovimentacao(n.toUpperCase(), q, "Cadastro", "Entrada Inicial");
+                registrarMovimentacao(n.toUpperCase(), q, "Cadastro", "ENTRADA INICIAL");
                 document.getElementById('nome').value = ''; document.getElementById('qtd_inicial').value = ''; document.getElementById('preco').value = '';
                 renderizar();
             }
@@ -163,16 +153,15 @@
             indexAtual = index; tipoAtual = tipo;
             const modal = document.getElementById('modalMovimentacao');
             const btn = document.getElementById('btnConfirmar');
-            const areaSaida = document.getElementById('areaSaida');
             document.getElementById('modalTitulo').innerText = `${tipo}: ${estoque[index].nome}`;
             document.getElementById('modalQtd').value = 1; document.getElementById('modalIdentificacao').value = '';
             modal.classList.remove('hidden');
             if (tipo === 'Saída') {
                 btn.innerText = "CONFIRMAR SAÍDA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-600 shadow-lg";
-                areaSaida.classList.remove('hidden'); toggleVeiculo();
+                document.getElementById('areaSaida').classList.remove('hidden'); toggleVeiculo();
             } else {
                 btn.innerText = "CONFIRMAR ENTRADA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 shadow-lg";
-                areaSaida.classList.add('hidden');
+                document.getElementById('areaSaida').classList.add('hidden');
             }
             btn.onclick = confirmarAcao;
         }
@@ -194,39 +183,48 @@
                 const i = document.getElementById('modalIdentificacao').value;
                 registrarMovimentacao(item.nome, q, "Saída", d === 'Veículo' ? `VEÍCULO: ${i}` : "PÁTIO");
             } else {
-                item.qtd += q; registrarMovimentacao(item.nome, q, "Entrada", "Reposição");
+                item.qtd += q; registrarMovimentacao(item.nome, q, "Entrada", "REPOSIÇÃO");
             }
             fecharModal(); renderizar();
         }
 
-        function gerarQRCode() {
-            const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
-            const rel = historico.filter(h => h.mesAno === mes).slice(-15);
-            let txt = `DIESEL PRO - ${mes}\n`;
-            rel.forEach(h => txt += `${h.data} ${h.tipo}: ${h.qtd} ${h.nome}\n`);
-            document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: txt, width: 200, height: 200 });
-            document.getElementById('modalQR').classList.remove('hidden');
-        }
-
-        function fecharQR() { document.getElementById('modalQR').classList.add('hidden'); }
         function remover(index) { if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); } }
+
         function fazerBackup() {
             const b = new Blob([JSON.stringify({estoque, historico})], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(b);
-            a.download = `backup_oficina_${new Date().toLocaleDateString('pt-BR')}.json`; a.click();
+            a.download = `backup_diesel_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`; a.click();
+            alert("Backup salvo com sucesso! Guarde este arquivo em local seguro.");
         }
 
-        async function gerarPDF() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        async function gerarPDF(abrirNaTela = false) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
-            doc.text(`RELATORIO DIESEL - ${mes}`, 14, 20);
+            
+            doc.setFillColor(31, 41, 55);
+            doc.rect(0, 0, 210, 30, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text("DIESEL CONTROL PRO - RELATÓRIO MENSAL", 14, 20);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            const dadosMes = historico.filter(h => h.mesAno === mes);
+
             doc.autoTable({
-                head: [["Item", "Qtd", "Tipo", "Detalhe", "Data"]],
-                body: historico.filter(h => h.mesAno === mes).map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data]),
-                startY: 30, theme: 'grid', headStyles: { fillColor: [31, 41, 55] }
+                head: [["ITEM", "QTD", "TIPO", "DESTINO", "DATA", "HORA"]],
+                body: dadosMes.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data, h.hora]),
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [16, 185, 129] }
             });
-            doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
+
+            if (abrirNaTela) {
+                window.open(doc.output('bloburl'), '_blank');
+            } else {
+                doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
+            }
         }
 
         renderizar();
