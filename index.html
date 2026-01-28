@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Control Pro - Oficina</title>
+    <title>Diesel Control Pro - Oficina & QR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         .alerta-baixo { animation: pulse 2s infinite; color: #ef4444; font-weight: bold; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -19,12 +20,13 @@
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
                 <div class="flex gap-4 mt-1">
-                    <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total Pátio: R$ 0,00</span>
+                    <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total: R$ 0,00</span>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition">💾 Backup Dados</button>
-                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-emerald-700 transition">📄 Relatório Mensal</button>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-black transition">💾 BACKUP</button>
+                <button onclick="gerarQRCode()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition">📱 QR RELATÓRIO</button>
+                <button onclick="gerarPDF()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-lg hover:bg-emerald-700 transition">📄 PDF MENSAL</button>
             </div>
         </div>
         
@@ -35,20 +37,20 @@
             <div class="md:col-span-8 flex gap-2 bg-slate-900 p-2 rounded-xl">
                 <input id="nome" type="text" placeholder="Nome da Peça" class="flex-1 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none focus:ring-1 focus:ring-emerald-400">
                 <input id="qtd_inicial" type="number" placeholder="Qtd" class="w-20 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
-                <input id="preco" type="number" step="0.01" placeholder="R$ Custo" class="w-24 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
-                <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition">Cadastrar</button>
+                <input id="preco" type="number" step="0.01" placeholder="Custo R$" class="w-24 p-2 rounded-lg bg-slate-800 text-white border border-slate-700 outline-none">
+                <button onclick="adicionar()" class="bg-emerald-500 text-white font-bold px-4 rounded-lg hover:bg-emerald-400 transition text-xs uppercase">Cadastrar</button>
             </div>
         </div>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-800 text-slate-200 uppercase text-[11px] font-bold">
+                <thead class="bg-slate-800 text-slate-200 uppercase text-[10px] font-bold">
                     <tr>
-                        <th class="p-4">Descrição do Item</th>
+                        <th class="p-4">Item</th>
                         <th class="p-4">Estoque</th>
                         <th class="p-4">Preço Unit.</th>
                         <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Ações de Saída/Entrada</th>
+                        <th class="p-4 text-center">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
@@ -56,28 +58,31 @@
         </div>
     </div>
 
+    <div id="modalQR" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-6 rounded-3xl text-center space-y-4 max-w-sm w-full shadow-2xl">
+            <h2 class="font-black text-xl text-slate-800">Histórico Mensal QR</h2>
+            <div id="qrcode" class="flex justify-center p-4 bg-white border-4 border-slate-50 rounded-2xl"></div>
+            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Aponte a câmera para ver o resumo do mês</p>
+            <button onclick="fecharQR()" class="w-full bg-slate-800 text-white p-3 rounded-xl font-bold hover:bg-black">FECHAR</button>
+        </div>
+    </div>
+
     <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" id="modalContent">
-            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800">
-                <span id="modalTitulo">Movimentar Peça</span>
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800 uppercase text-sm tracking-widest">
+                <span id="modalTitulo">Movimentar</span>
                 <button onclick="fecharModal()" class="text-2xl">&times;</button>
             </div>
             <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Quantidade:</label>
-                    <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none focus:border-emerald-500" value="1">
-                </div>
+                <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none border-slate-200 focus:border-emerald-500" value="1">
                 
                 <div id="areaSaida">
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Para onde vai?</label>
-                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-3 border-2 rounded-xl outline-none mb-4 font-bold">
-                        <option value="Pátio">Uso no Pátio (Interno)</option>
-                        <option value="Veículo">Veículo (Cliente/Placa)</option>
+                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-4 border-2 rounded-xl outline-none mb-4 font-bold bg-slate-50">
+                        <option value="Pátio">📦 USO NO PÁTIO (INTERNO)</option>
+                        <option value="Veículo">🚚 VEÍCULO (CLIENTE/PLACA)</option>
                     </select>
-
                     <div id="campoVeiculo" class="hidden">
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Placa ou Nome do Cliente:</label>
-                        <input id="modalIdentificacao" type="text" placeholder="Ex: ABC-1234 ou Sr. Jean" class="w-full p-3 border-2 rounded-xl outline-none border-emerald-500 font-bold uppercase">
+                        <input id="modalIdentificacao" type="text" placeholder="PLACA OU NOME DO CLIENTE" class="w-full p-4 border-2 rounded-xl outline-none border-emerald-500 font-bold uppercase placeholder:text-slate-300">
                     </div>
                 </div>
 
@@ -87,11 +92,9 @@
     </div>
 
     <script>
-        // CARREGAMENTO SEGURO - NÃO PERDE OS DADOS CADASTRADOS
         let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
         let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
-        let indexAtual = null;
-        let tipoAtual = null;
+        let indexAtual = null, tipoAtual = null;
 
         function registrarMovimentacao(nome, qtd, tipo, detalhes = "") {
             const agora = new Date();
@@ -113,24 +116,23 @@
             estoque.forEach((item, index) => {
                 const subtotal = item.qtd * item.preco;
                 totalGeral += subtotal;
-
                 if (item.nome.toLowerCase().includes(termoBusca)) {
                     lista.innerHTML += `
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="p-4 font-bold text-slate-800 uppercase text-sm">${item.nome}</td>
+                            <td class="p-4 font-bold text-slate-800 uppercase text-xs">${item.nome}</td>
                             <td class="p-4 font-bold ${item.qtd <= 1 ? 'alerta-baixo' : 'text-slate-600'} text-lg">${item.qtd}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-slate-500 font-medium text-xs">R$ ${item.preco.toFixed(2)}</span>
-                                    <button onclick="editarPreco(${index})" class="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-bold hover:bg-slate-200">EDITAR</button>
+                                    <span class="text-slate-500 font-medium text-[10px]">R$ ${item.preco.toFixed(2)}</span>
+                                    <button onclick="editarPreco(${index})" class="text-[8px] bg-slate-100 px-1 py-0.5 rounded text-slate-400 font-bold">EDITAR</button>
                                 </div>
                             </td>
-                            <td class="p-4 font-bold text-emerald-600">R$ ${subtotal.toFixed(2)}</td>
-                            <td class="p-4">
+                            <td class="p-4 font-bold text-emerald-600 text-sm">R$ ${subtotal.toFixed(2)}</td>
+                            <td class="p-4 text-center">
                                 <div class="flex justify-center gap-2">
-                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-[10px] font-black hover:bg-red-600 shadow-sm transition">SAÍDA</button>
-                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black hover:bg-blue-700 shadow-sm transition">ENTRADA</button>
-                                    <button onclick="remover(${index})" class="ml-4 text-slate-300 hover:text-red-500 transition">🗑️</button>
+                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black">SAÍDA</button>
+                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black">ENTRADA</button>
+                                    <button onclick="remover(${index})" class="ml-2 text-slate-300 hover:text-red-500 transition">🗑️</button>
                                 </div>
                             </td>
                         </tr>`;
@@ -144,49 +146,32 @@
             const n = document.getElementById('nome').value.trim();
             const q = parseInt(document.getElementById('qtd_inicial').value) || 0;
             const p = parseFloat(document.getElementById('preco').value);
-
             if(n && !isNaN(p)) {
-                estoque.push({nome: n, qtd: q, preco: p});
-                registrarMovimentacao(n, q, "Cadastro", "Entrada Inicial");
-                document.getElementById('nome').value = '';
-                document.getElementById('qtd_inicial').value = '';
-                document.getElementById('preco').value = '';
+                estoque.push({nome: n.toUpperCase(), qtd: q, preco: p});
+                registrarMovimentacao(n.toUpperCase(), q, "Cadastro", "Entrada Inicial");
+                document.getElementById('nome').value = ''; document.getElementById('qtd_inicial').value = ''; document.getElementById('preco').value = '';
                 renderizar();
-            } else {
-                alert("Preencha o Nome e o Preço para cadastrar!");
             }
         }
 
         function editarPreco(index) {
             const novo = prompt(`Novo preço para: ${estoque[index].nome}`, estoque[index].preco);
-            if (novo !== null && !isNaN(novo)) {
-                estoque[index].preco = parseFloat(novo);
-                renderizar();
-            }
+            if (novo !== null && !isNaN(novo)) { estoque[index].preco = parseFloat(novo); renderizar(); }
         }
 
         function abrirModal(index, tipo) {
-            indexAtual = index;
-            tipoAtual = tipo;
-            const item = estoque[index];
+            indexAtual = index; tipoAtual = tipo;
             const modal = document.getElementById('modalMovimentacao');
             const btn = document.getElementById('btnConfirmar');
             const areaSaida = document.getElementById('areaSaida');
-            
-            document.getElementById('modalTitulo').innerText = `${tipo}: ${item.nome}`;
-            document.getElementById('modalQtd').value = 1;
-            document.getElementById('modalIdentificacao').value = '';
-            
+            document.getElementById('modalTitulo').innerText = `${tipo}: ${estoque[index].nome}`;
+            document.getElementById('modalQtd').value = 1; document.getElementById('modalIdentificacao').value = '';
             modal.classList.remove('hidden');
-
             if (tipo === 'Saída') {
-                btn.innerText = "Confirmar Saída";
-                btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-500 hover:bg-red-600 shadow-lg";
-                areaSaida.classList.remove('hidden');
-                toggleVeiculo();
+                btn.innerText = "CONFIRMAR SAÍDA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-600 shadow-lg";
+                areaSaida.classList.remove('hidden'); toggleVeiculo();
             } else {
-                btn.innerText = "Confirmar Entrada";
-                btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 hover:bg-blue-700 shadow-lg";
+                btn.innerText = "CONFIRMAR ENTRADA"; btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 shadow-lg";
                 areaSaida.classList.add('hidden');
             }
             btn.onclick = confirmarAcao;
@@ -197,69 +182,53 @@
             document.getElementById('campoVeiculo').className = (d === 'Veículo') ? 'block' : 'hidden';
         }
 
-        function fecharModal() {
-            document.getElementById('modalMovimentacao').classList.add('hidden');
-        }
+        function fecharModal() { document.getElementById('modalMovimentacao').classList.add('hidden'); }
 
         function confirmarAcao() {
             const item = estoque[indexAtual];
             const q = parseInt(document.getElementById('modalQtd').value);
-            
-            if (isNaN(q) || q <= 0) return alert("Quantidade inválida");
-
             if (tipoAtual === 'Saída') {
                 if (q > item.qtd) return alert("Estoque insuficiente!");
                 item.qtd -= q;
-                const dest = document.getElementById('modalDestino').value;
-                const ident = document.getElementById('modalIdentificacao').value;
-                const detalhe = (dest === 'Veículo') ? `VEÍCULO: ${ident}` : "PÁTIO (INTERNO)";
-                registrarMovimentacao(item.nome, q, "Saída", detalhe);
+                const d = document.getElementById('modalDestino').value;
+                const i = document.getElementById('modalIdentificacao').value;
+                registrarMovimentacao(item.nome, q, "Saída", d === 'Veículo' ? `VEÍCULO: ${i}` : "PÁTIO");
             } else {
-                item.qtd += q;
-                registrarMovimentacao(item.nome, q, "Entrada", "Reposição de Estoque");
+                item.qtd += q; registrarMovimentacao(item.nome, q, "Entrada", "Reposição");
             }
-
-            fecharModal();
-            renderizar();
+            fecharModal(); renderizar();
         }
 
-        function remover(index) {
-            if(confirm("Deseja excluir permanentemente este item?")) {
-                estoque.splice(index, 1);
-                renderizar();
-            }
+        function gerarQRCode() {
+            const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
+            const rel = historico.filter(h => h.mesAno === mes).slice(-15);
+            let txt = `DIESEL PRO - ${mes}\n`;
+            rel.forEach(h => txt += `${h.data} ${h.tipo}: ${h.qtd} ${h.nome}\n`);
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), { text: txt, width: 200, height: 200 });
+            document.getElementById('modalQR').classList.remove('hidden');
         }
 
+        function fecharQR() { document.getElementById('modalQR').classList.add('hidden'); }
+        function remover(index) { if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); } }
         function fazerBackup() {
-            const dados = { estoque, historico };
-            const blob = new Blob([JSON.stringify(dados)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `backup_oficina_${new Date().toLocaleDateString('pt-BR')}.json`;
-            a.click();
+            const b = new Blob([JSON.stringify({estoque, historico})], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+            a.download = `backup_oficina_${new Date().toLocaleDateString('pt-BR')}.json`; a.click();
         }
 
         async function gerarPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
             const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
-            
-            doc.setFontSize(16);
-            doc.text(`RELATÓRIO MENSAL DIESEL - ${mes}`, 14, 20);
-            
-            const dadosMes = historico.filter(h => h.mesAno === mes);
-
+            doc.text(`RELATORIO DIESEL - ${mes}`, 14, 20);
             doc.autoTable({
-                head: [["Item", "Qtd", "Tipo", "Destino/Detalhe", "Data", "Hora"]],
-                body: dadosMes.map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data, h.hora]),
-                startY: 30,
-                theme: 'grid',
-                headStyles: { fillColor: [31, 41, 55] }
+                head: [["Item", "Qtd", "Tipo", "Detalhe", "Data"]],
+                body: historico.filter(h => h.mesAno === mes).map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data]),
+                startY: 30, theme: 'grid', headStyles: { fillColor: [31, 41, 55] }
             });
-            doc.save(`relatorio_mensal_${mes.replace('/','_')}.pdf`);
+            doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
         }
 
-        // Início automático
         renderizar();
     </script>
 </body>
