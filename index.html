@@ -123,6 +123,17 @@
       background-color: var(--accent-red-hover);
     }
 
+    .btn-secondary {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background-color: #383838;
+    }
+
     .search-bar {
       margin-bottom: 20px;
     }
@@ -155,6 +166,13 @@
       object-fit: cover;
       border-radius: 4px;
       background-color: #000;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .product-img:hover {
+      transform: scale(1.08);
+      border: 1px solid var(--accent-red);
     }
 
     .qty-controls {
@@ -211,12 +229,65 @@
       color: var(--text-main);
     }
 
-    .btn-danger {
+    .btn-action {
       background: none;
       border: none;
-      color: var(--accent-red);
       cursor: pointer;
       font-size: 0.85rem;
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    .btn-edit {
+      color: #64b5f6;
+    }
+
+    .btn-danger {
+      color: var(--accent-red);
+    }
+
+    /* MODAL DE EDIÇÃO E VISUALIZAÇÃO DA FOTO */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 25px;
+      width: 100%;
+      max-width: 450px;
+      position: relative;
+    }
+
+    .lightbox-img {
+      max-width: 90vw;
+      max-height: 80vh;
+      border-radius: 8px;
+      border: 2px solid var(--accent-red);
+      object-fit: contain;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -228,6 +299,7 @@
     </header>
 
     <div class="grid">
+      <!-- PAINEL LATERAL: CADASTRO E HISTÓRICO -->
       <div>
         <div class="card" style="margin-bottom: 20px;">
           <h2>Cadastrar Novo Item</h2>
@@ -256,10 +328,12 @@
         <div class="card">
           <h2>Histórico de Movimentações</h2>
           <div class="history-list" id="historyList">
-            </div>
+            <!-- Registros gerados via script -->
+          </div>
         </div>
       </div>
 
+      <!-- PAINEL PRINCIPAL: BUSCA E LISTA -->
       <div>
         <div class="card">
           <div class="search-bar">
@@ -278,12 +352,49 @@
                 </tr>
               </thead>
               <tbody id="productTable">
-                </tbody>
+                <!-- Linhas inseridas via JS -->
+              </tbody>
             </table>
           </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- MODAL DE EDIÇÃO -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+      <button class="close-btn" onclick="closeEditModal()">✕</button>
+      <h2>Editar Item</h2>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label>Nome do Produto / Peça</label>
+          <input type="text" id="editName" required>
+        </div>
+        <div class="form-group">
+          <label>Código / Referência</label>
+          <input type="text" id="editCode">
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <input type="number" id="editQty" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Nova Foto (Deixe em branco para manter a atual)</label>
+          <input type="file" id="editImgFile" accept="image/*" style="margin-bottom: 5px;">
+          <input type="url" id="editImgUrl" placeholder="Ou cole um novo link da imagem">
+        </div>
+        <button type="submit" class="btn">Salvar Alterações</button>
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE VISUALIZAÇÃO DE FOTO GRANDE (LIGHTBOX) -->
+  <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+    <button class="close-btn" onclick="closeImageModal()">✕</button>
+    <img id="modalImage" class="lightbox-img" src="" alt="Foto Expandida">
   </div>
 
   <script>
@@ -292,6 +403,7 @@
 
     const productForm = document.getElementById('productForm');
     const pImgFile = document.getElementById('pImgFile');
+    const editForm = document.getElementById('editForm');
 
     // Salvar estado no LocalStorage
     function saveData() {
@@ -304,7 +416,7 @@
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
       history.unshift({ date: dateStr, text: `${type}: ${amount}x ${productName}` });
-      if (history.length > 30) history.pop(); // Mantém os últimos 30 registros
+      if (history.length > 30) history.pop();
       saveData();
       renderHistory();
     }
@@ -363,6 +475,79 @@
       }
     }
 
+    // ABRIR E EDITAR ITEM
+    function openEditModal(id) {
+      const prod = products.find(p => p.id === id);
+      if (!prod) return;
+
+      document.getElementById('editId').value = prod.id;
+      document.getElementById('editName').value = prod.name;
+      document.getElementById('editCode').value = prod.code;
+      document.getElementById('editQty').value = prod.qty;
+      document.getElementById('editImgUrl').value = '';
+      document.getElementById('editImgFile').value = '';
+
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    editForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('editId').value);
+      const name = document.getElementById('editName').value;
+      const code = document.getElementById('editCode').value || 'S/N';
+      const qty = parseInt(document.getElementById('editQty').value);
+      const urlInput = document.getElementById('editImgUrl').value;
+      const fileInput = document.getElementById('editImgFile').value ? document.getElementById('editImgFile').files[0] : null;
+
+      const prod = products.find(p => p.id === id);
+      if (!prod) return;
+
+      const applyUpdates = (newImg) => {
+        if (prod.qty !== qty) {
+          logMovement(name, 'Ajuste Manual Qtd', qty - prod.qty);
+        } else {
+          logMovement(name, 'Edição de Dados', 0);
+        }
+
+        prod.name = name;
+        prod.code = code;
+        prod.qty = qty;
+        if (newImg) prod.img = newImg;
+
+        saveData();
+        renderProducts();
+        closeEditModal();
+      };
+
+      if (fileInput) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          applyUpdates(e.target.result);
+        };
+        reader.readAsDataURL(fileInput);
+      } else if (urlInput) {
+        applyUpdates(urlInput);
+      } else {
+        applyUpdates(null);
+      }
+    });
+
+    // EXPANDIR FOTO (LIGHTBOX)
+    function openImageModal(imgSrc) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImage');
+      modalImg.src = imgSrc;
+      modal.style.display = 'flex';
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').style.display = 'none';
+    }
+
     // Excluir produto
     function deleteProduct(id) {
       const prod = products.find(p => p.id === id);
@@ -392,7 +577,7 @@
         const hasStock = p.qty > 0;
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td><img src="${p.img}" class="product-img" alt="Foto"></td>
+          <td><img src="${p.img}" class="product-img" alt="Foto" onclick="openImageModal('${p.img}')" title="Clique para ampliar"></td>
           <td>
             <strong>${p.name}</strong><br>
             <small style="color: var(--text-muted)">Cód: ${p.code}</small>
@@ -410,7 +595,8 @@
             </div>
           </td>
           <td>
-            <button class="btn-danger" onclick="deleteProduct(${p.id})">Excluir</button>
+            <button class="btn-action btn-edit" onclick="openEditModal(${p.id})">Editar</button>
+            <button class="btn-action btn-danger" onclick="deleteProduct(${p.id})">Excluir</button>
           </td>
         `;
         table.appendChild(row);
