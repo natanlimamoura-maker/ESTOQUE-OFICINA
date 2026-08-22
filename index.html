@@ -1,239 +1,441 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Control Pro - Oficial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        .alerta-baixo { animation: pulse 2s infinite; color: #ef4444; font-weight: bold; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .modal-transition { transition: all 0.2s ease-in-out; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Estoque - Oficina</title>
+  <style>
+    :root {
+      --bg-primary: #121212;
+      --bg-surface: #1e1e1e;
+      --bg-card: #2a2a2a;
+      --accent-red: #d32f2f;
+      --accent-red-hover: #b71c1c;
+      --text-main: #f5f5f5;
+      --text-muted: #a0a0a0;
+      --border-color: #333333;
+      --success-green: #2e7d32;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--accent-red);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    .badge-red {
+      color: var(--accent-red);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent-red);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--accent-red);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-red-hover);
+    }
+
+    .search-bar {
+      margin-bottom: 20px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .product-img {
+      width: 45px;
+      height: 45px;
+      object-fit: cover;
+      border-radius: 4px;
+      background-color: #000;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-qty {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-qty:hover {
+      background-color: var(--accent-red);
+    }
+
+    .status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .status-ok {
+      background-color: rgba(46, 125, 50, 0.2);
+      color: #81c784;
+    }
+
+    .status-out {
+      background-color: rgba(211, 47, 47, 0.2);
+      color: #e57373;
+    }
+
+    .history-list {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .history-item {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .history-item span {
+      color: var(--text-main);
+    }
+
+    .btn-danger {
+      background: none;
+      border: none;
+      color: var(--accent-red);
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
-<body class="bg-slate-100 p-2 md:p-8 font-sans text-slate-900">
+<body>
 
-    <div class="max-w-6xl mx-auto bg-white p-4 md:p-6 rounded-2xl shadow-2xl border border-slate-200">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-6">
-            <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight">🛠️ Diesel Control <span class="text-emerald-600">Pro</span></h1>
-                <div class="flex gap-4 mt-1">
-                    <span id="valorTotalPatio" class="text-sm bg-emerald-100 text-emerald-700 px-2 rounded-full font-bold">Total: R$ 0,00</span>
-                </div>
+  <div class="container">
+    <header>
+      <h1>Oficina <span class="badge-red">| Controle de Estoque</span></h1>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="card" style="margin-bottom: 20px;">
+          <h2>Cadastrar Novo Item</h2>
+          <form id="productForm">
+            <div class="form-group">
+              <label>Nome do Produto / Peça</label>
+              <input type="text" id="pName" required placeholder="Ex: Injetor Bosch Common Rail">
             </div>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <button onclick="fazerBackup()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-black transition">💾 BACKUP</button>
-                <button onclick="gerarPDF(true)" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition">📱 RELATÓRIO NO CELULAR</button>
-                <button onclick="gerarPDF(false)" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-[10px] font-bold shadow-lg hover:bg-emerald-700 transition">📄 PDF MENSAL</button>
+            <div class="form-group">
+              <label>Código / Referência</label>
+              <input type="text" id="pCode" placeholder="Ex: 0445110351">
+            </div>
+            <div class="form-group">
+              <label>Quantidade Inicial</label>
+              <input type="number" id="pQty" min="0" value="1" required>
+            </div>
+            <div class="form-group">
+              <label>Foto do Produto (Upload ou URL)</label>
+              <input type="file" id="pImgFile" accept="image/*" style="margin-bottom: 5px;">
+              <input type="url" id="pImgUrl" placeholder="Ou cole o link da imagem">
+            </div>
+            <button type="submit" class="btn">Adicionar ao Estoque</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Histórico de Movimentações</h2>
+          <div class="history-list" id="historyList">
             </div>
         </div>
-        
-        <div class="bg-slate-900 p-3 rounded-xl mb-6 grid grid-cols-1 md:grid-cols-4 gap-2">
-            <input id="nome" type="text" placeholder="Nome da Peça" class="p-2 rounded bg-slate-800 text-white border-none outline-none focus:ring-1 focus:ring-emerald-400 uppercase">
-            <input id="qtd_inicial" type="number" placeholder="Qtd Inicial" class="p-2 rounded bg-slate-800 text-white border-none outline-none">
-            <input id="preco" type="number" step="0.01" placeholder="Custo R$" class="p-2 rounded bg-slate-800 text-white border-none outline-none">
-            <button onclick="adicionar()" class="bg-emerald-500 text-white font-black rounded uppercase text-xs hover:bg-emerald-400 transition">Cadastrar Item</button>
-        </div>
+      </div>
 
-        <div class="relative mb-6">
-            <input id="busca" oninput="renderizar()" type="text" placeholder="🔍 Pesquisar peça..." class="w-full p-3 pl-10 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
-        </div>
+      <div>
+        <div class="card">
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar por nome ou código da peça..." onkeyup="renderProducts()">
+          </div>
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-800 text-slate-200 uppercase text-[10px] font-bold">
-                    <tr>
-                        <th class="p-4">Item</th>
-                        <th class="p-4">Estoque</th>
-                        <th class="p-4">Preço Unit.</th>
-                        <th class="p-4">Subtotal</th>
-                        <th class="p-4 text-center">Movimentar</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-estoque" class="divide-y divide-slate-100"></tbody>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Peça / Código</th>
+                  <th>Status</th>
+                  <th>Qtd Disponível</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="productTable">
+                </tbody>
             </table>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 
-    <div id="modalMovimentacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden modal-transition scale-95 opacity-0" id="modalContent">
-            <div id="modalHeader" class="p-4 text-white font-bold flex justify-between items-center bg-slate-800">
-                <span id="modalTitulo">Movimentar</span>
-                <button onclick="fecharModal()" class="text-2xl">&times;</button>
+  <script>
+    let products = JSON.parse(localStorage.getItem('oficina_estoque')) || [];
+    let history = JSON.parse(localStorage.getItem('oficina_historico')) || [];
+
+    const productForm = document.getElementById('productForm');
+    const pImgFile = document.getElementById('pImgFile');
+
+    // Salvar estado no LocalStorage
+    function saveData() {
+      localStorage.setItem('oficina_estoque', JSON.stringify(products));
+      localStorage.setItem('oficina_historico', JSON.stringify(history));
+    }
+
+    // Registrar movimentação
+    function logMovement(productName, type, amount) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+      history.unshift({ date: dateStr, text: `${type}: ${amount}x ${productName}` });
+      if (history.length > 30) history.pop(); // Mantém os últimos 30 registros
+      saveData();
+      renderHistory();
+    }
+
+    // Adicionar novo produto
+    productForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('pName').value;
+      const code = document.getElementById('pCode').value || 'S/N';
+      const qty = parseInt(document.getElementById('pQty').value);
+      const urlInput = document.getElementById('pImgUrl').value;
+      const fileInput = pImgFile.files[0];
+
+      if (fileInput) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          addProduct(name, code, qty, e.target.result);
+        };
+        reader.readAsDataURL(fileInput);
+      } else {
+        const img = urlInput || 'https://via.placeholder.com/50?text=Peca';
+        addProduct(name, code, qty, img);
+      }
+    });
+
+    function addProduct(name, code, qty, img) {
+      const newProduct = {
+        id: Date.now(),
+        name,
+        code,
+        qty: parseInt(qty),
+        img
+      };
+
+      products.push(newProduct);
+      logMovement(name, 'Entrada Inicial', qty);
+      productForm.reset();
+      renderProducts();
+    }
+
+    // Alterar quantidade (+ / -)
+    function updateQty(id, change) {
+      const prod = products.find(p => p.id === id);
+      if (prod) {
+        const oldQty = prod.qty;
+        prod.qty += change;
+        if (prod.qty < 0) prod.qty = 0;
+
+        const diff = prod.qty - oldQty;
+        if (diff !== 0) {
+          const type = diff > 0 ? 'Adicionado' : 'Removido (Orçamento)';
+          logMovement(prod.name, type, Math.abs(diff));
+          renderProducts();
+        }
+      }
+    }
+
+    // Excluir produto
+    function deleteProduct(id) {
+      const prod = products.find(p => p.id === id);
+      if (prod && confirm(`Remover "${prod.name}" do sistema?`)) {
+        logMovement(prod.name, 'Item Removido', prod.qty);
+        products = products.filter(p => p.id !== id);
+        renderProducts();
+      }
+    }
+
+    // Renderizar Tabela
+    function renderProducts() {
+      const table = document.getElementById('productTable');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      table.innerHTML = '';
+
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        table.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">Nenhum item encontrado no estoque.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(p => {
+        const hasStock = p.qty > 0;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><img src="${p.img}" class="product-img" alt="Foto"></td>
+          <td>
+            <strong>${p.name}</strong><br>
+            <small style="color: var(--text-muted)">Cód: ${p.code}</small>
+          </td>
+          <td>
+            <span class="status ${hasStock ? 'status-ok' : 'status-out'}">
+              ${hasStock ? 'DISPONÍVEL' : 'SEM ESTOQUE'}
+            </span>
+          </td>
+          <td>
+            <div class="qty-controls">
+              <button class="btn-qty" onclick="updateQty(${p.id}, -1)">-</button>
+              <span style="font-weight: bold; min-width: 20px; text-align: center;">${p.qty}</span>
+              <button class="btn-qty" onclick="updateQty(${p.id}, 1)">+</button>
             </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Quantidade:</label>
-                    <input id="modalQtd" type="number" class="w-full p-4 border-2 rounded-xl text-2xl font-bold outline-none focus:border-slate-400" value="1">
-                </div>
-                
-                <div id="campoSaidaExtra" class="hidden">
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Destino:</label>
-                    <select id="modalDestino" onchange="toggleVeiculo()" class="w-full p-4 border-2 rounded-xl font-bold bg-slate-50 text-sm mb-4">
-                        <option value="Pátio">📦 USO NO PÁTIO (INTERNO)</option>
-                        <option value="Veículo">🚚 VEÍCULO (CLIENTE/PLACA)</option>
-                    </select>
-                    <div id="campoVeiculo" class="hidden">
-                        <input id="modalIdentificacao" type="text" placeholder="PLACA OU NOME DO CLIENTE" class="w-full p-4 border-2 rounded-xl border-emerald-500 font-bold uppercase">
-                    </div>
-                </div>
+          </td>
+          <td>
+            <button class="btn-danger" onclick="deleteProduct(${p.id})">Excluir</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
 
-                <button id="btnConfirmar" class="w-full p-4 rounded-xl text-white font-black uppercase tracking-widest transition shadow-lg mt-4"></button>
-            </div>
-        </div>
-    </div>
+    // Renderizar Histórico
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      if (history.length === 0) {
+        list.innerHTML = '<div class="history-item">Nenhuma movimentação.</div>';
+        return;
+      }
+      history.forEach(h => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `<small>${h.date}</small><br><span>${h.text}</span>`;
+        list.appendChild(item);
+      });
+    }
 
-    <script>
-        // SEGURANÇA: MANTÉM OS DADOS QUE JÁ ESTÃO NO NAVEGADOR
-        let estoque = JSON.parse(localStorage.getItem('meuEstoque')) || [];
-        let historico = JSON.parse(localStorage.getItem('meuHistorico')) || [];
-        let indexAtual = null, tipoAtual = null;
-
-        function registrar(nome, qtd, tipo, detalhes = "") {
-            const agora = new Date();
-            historico.push({
-                data: agora.toLocaleDateString('pt-BR'),
-                hora: agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-                mesAno: agora.toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'}),
-                nome: nome.toUpperCase(), qtd, tipo, detalhes: detalhes.toUpperCase()
-            });
-            localStorage.setItem('meuHistorico', JSON.stringify(historico));
-        }
-
-        function renderizar() {
-            const lista = document.getElementById('lista-estoque');
-            const busca = document.getElementById('busca').value.toLowerCase();
-            let total = 0;
-            lista.innerHTML = '';
-
-            estoque.forEach((item, index) => {
-                const subtotal = item.qtd * item.preco;
-                total += subtotal;
-                if (item.nome.toLowerCase().includes(busca)) {
-                    lista.innerHTML += `
-                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                            <td class="p-4 font-bold text-slate-800 uppercase text-xs">${item.nome}</td>
-                            <td class="p-4 font-bold ${item.qtd <= 1 ? 'alerta-baixo' : 'text-slate-600'} text-lg">${item.qtd}</td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-slate-500 font-medium text-[10px]">R$ ${item.preco.toFixed(2)}</span>
-                                    <button onclick="editarPreco(${index})" class="text-[8px] bg-slate-100 px-1 py-0.5 rounded text-slate-400 font-bold hover:bg-slate-200">EDITAR</button>
-                                </div>
-                            </td>
-                            <td class="p-4 font-bold text-emerald-600 text-sm">R$ ${subtotal.toFixed(2)}</td>
-                            <td class="p-4 text-center">
-                                <div class="flex justify-center gap-2">
-                                    <button onclick="abrirModal(${index}, 'Saída')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-[9px] font-black hover:bg-red-600 shadow-md">SAÍDA</button>
-                                    <button onclick="abrirModal(${index}, 'Entrada')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-[9px] font-black hover:bg-blue-700 shadow-md">ENTRADA</button>
-                                    <button onclick="remover(${index})" class="ml-2 text-slate-300 hover:text-red-500 transition">🗑️</button>
-                                </div>
-                            </td>
-                        </tr>`;
-                }
-            });
-            document.getElementById('valorTotalPatio').innerText = `Total Pátio: R$ ${total.toFixed(2)}`;
-            localStorage.setItem('meuEstoque', JSON.stringify(estoque));
-        }
-
-        function adicionar() {
-            const n = document.getElementById('nome').value.trim();
-            const q = parseInt(document.getElementById('qtd_inicial').value) || 0;
-            const p = parseFloat(document.getElementById('preco').value);
-            if(n && !isNaN(p)) {
-                estoque.push({nome: n.toUpperCase(), qtd: q, preco: p});
-                registrar(n, q, "CADASTRO", "ENTRADA INICIAL");
-                document.getElementById('nome').value = ''; document.getElementById('qtd_inicial').value = ''; document.getElementById('preco').value = '';
-                renderizar();
-            }
-        }
-
-        function editarPreco(index) {
-            const n = prompt(`Novo preço para: ${estoque[index].nome}`, estoque[index].preco);
-            if (n !== null && !isNaN(n)) { estoque[index].preco = parseFloat(n); renderizar(); }
-        }
-
-        function abrirModal(index, tipo) {
-            indexAtual = index; tipoAtual = tipo;
-            const modal = document.getElementById('modalMovimentacao');
-            const content = document.getElementById('modalContent');
-            const header = document.getElementById('modalHeader');
-            const btn = document.getElementById('btnConfirmar');
-            const campoSaida = document.getElementById('campoSaidaExtra');
-            
-            document.getElementById('modalTitulo').innerText = `${tipo}: ${estoque[index].nome}`;
-            document.getElementById('modalQtd').value = 1;
-            modal.classList.remove('hidden');
-            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); }, 10);
-
-            if (tipo === 'Saída') {
-                header.className = "p-4 text-white font-bold bg-red-600 flex justify-between";
-                btn.className = "w-full p-4 rounded-xl text-white font-black bg-red-600 shadow-lg";
-                btn.innerText = "CONFIRMAR SAÍDA";
-                campoSaida.classList.remove('hidden');
-                toggleVeiculo();
-            } else {
-                header.className = "p-4 text-white font-bold bg-blue-600 flex justify-between";
-                btn.className = "w-full p-4 rounded-xl text-white font-black bg-blue-600 shadow-lg";
-                btn.innerText = "CONFIRMAR ENTRADA";
-                campoSaida.classList.add('hidden');
-            }
-            btn.onclick = confirmarAcao;
-        }
-
-        function toggleVeiculo() {
-            const d = document.getElementById('modalDestino').value;
-            document.getElementById('campoVeiculo').className = (d === 'Veículo') ? 'block' : 'hidden';
-        }
-
-        function fecharModal() {
-            const modal = document.getElementById('modalMovimentacao');
-            const content = document.getElementById('modalContent');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); }, 200);
-        }
-
-        function confirmarAcao() {
-            const item = estoque[indexAtual];
-            const q = parseInt(document.getElementById('modalQtd').value);
-            if (isNaN(q) || q <= 0) return alert("Qtd inválida!");
-
-            if (tipoAtual === 'Saída') {
-                if (q > item.qtd) return alert("Estoque insuficiente!");
-                item.qtd -= q;
-                const d = document.getElementById('modalDestino').value;
-                const i = document.getElementById('modalIdentificacao').value;
-                registrar(item.nome, q, "SAÍDA", d === 'Veículo' ? `VEÍCULO: ${i}` : "PÁTIO");
-            } else {
-                item.qtd += q;
-                registrar(item.nome, q, "ENTRADA", "REPOSIÇÃO");
-            }
-            fecharModal(); renderizar();
-        }
-
-        function remover(index) { if(confirm("Excluir item?")) { estoque.splice(index, 1); renderizar(); } }
-
-        function fazerBackup() {
-            const b = new Blob([JSON.stringify({estoque, historico})], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(b);
-            a.download = `backup_oficina.json`; a.click();
-        }
-
-        async function gerarPDF(abrir) {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const mes = new Date().toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
-            doc.text(`RELATORIO DIESEL - ${mes}`, 14, 20);
-            doc.autoTable({
-                head: [["Item", "Qtd", "Tipo", "Detalhe", "Data", "Hora"]],
-                body: historico.filter(h => h.mesAno === mes).map(h => [h.nome, h.qtd, h.tipo, h.detalhes, h.data, h.hora]),
-                startY: 30, theme: 'grid'
-            });
-            if (abrir) window.open(doc.output('bloburl'), '_blank');
-            else doc.save(`relatorio_${mes.replace('/','_')}.pdf`);
-        }
-
-        renderizar();
-    </script>
+    // Inicialização
+    renderProducts();
+    renderHistory();
+  </script>
 </body>
 </html>
