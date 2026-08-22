@@ -1,0 +1,15 @@
+{
+  "short_name": "Estoque",
+  "name": "Controle de Estoque - Oficina",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/d32f2f/ffffff?text=ESTOQUE",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#121212",
+  "theme_color": "#d32f2f",
+  "display": "standalone"
+}
