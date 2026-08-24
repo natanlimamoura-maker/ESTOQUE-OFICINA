@@ -449,12 +449,13 @@
         .select('*');
 
       if (prodData) {
+        // Mapeia diretamente para as colunas reais (id, name, code, qty, img)
         products = prodData.map(p => ({
-          id: p.id || p["eu ia"],
-          name: p.nome,
-          code: p.código,
-          qty: p.quantidade,
-          img: p.imagem
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          qty: p.qty,
+          img: p.img
         })).reverse();
       }
 
@@ -508,10 +509,10 @@
 
     async function addProduct(name, code, qty, img) {
       const newProduct = {
-        nome: name,
-        código: code,
-        quantidade: parseInt(qty),
-        imagem: img
+        name: name,
+        code: code,
+        qty: parseInt(qty),
+        img: img
       };
 
       const { data, error } = await _supabase
@@ -520,15 +521,7 @@
         .select();
 
       if (!error && data && data.length > 0) {
-        const formattedProduct = {
-          id: data[0].id || data[0]["eu ia"],
-          name: data[0].nome,
-          code: data[0].código,
-          qty: data[0].quantidade,
-          img: data[0].imagem
-        };
-
-        products.unshift(formattedProduct);
+        products.unshift(data[0]);
         logMovement(name, 'Entrada Inicial', qty);
         productForm.reset();
         renderProducts();
@@ -549,7 +542,7 @@
         if (diff !== 0) {
           const { error } = await _supabase
             .from('produtos')
-            .update({ quantidade: newQty })
+            .update({ qty: newQty })
             .eq('id', id);
 
           if (!error) {
@@ -593,8 +586,8 @@
       if (!prod) return;
 
       const applyUpdates = async (newImg) => {
-        const updateData = { nome: name, código: code, quantidade: qty };
-        if (newImg) updateData.imagem = newImg;
+        const updateData = { name: name, code: code, qty: qty };
+        if (newImg) updateData.img = newImg;
 
         const { error } = await _supabase
           .from('produtos')
@@ -655,7 +648,8 @@
       table.innerHTML = '';
 
       const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search)
+        (p.name && p.name.toLowerCase().includes(search)) || 
+        (p.code && p.code.toLowerCase().includes(search))
       );
 
       if (filtered.length === 0) {
