@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Controle de Estoque - Oficina</title>
 
-  <!-- Meta Tags PWA estritas para Android e iOS -->
+  <!-- Tags PWA para forçar instalação como App Nativo -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,122 +21,139 @@
   </script>
 
   <style>
+    :root {
+      --bg-primary: #121212;
+      --bg-surface: #1e1e1e;
+      --bg-card: #2a2a2a;
+      --accent-red: #d32f2f;
+      --accent-red-hover: #b71c1c;
+      --text-main: #f5f5f5;
+      --text-muted: #a0a0a0;
+      --border-color: #333333;
+      --success-green: #2e7d32;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #e0e0e0;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
       padding: 20px;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--accent-red);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     h1 {
-      text-align: center;
-      color: #d32f2f;
-      margin-bottom: 20px;
+      font-size: 1.5rem;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
+      color: var(--text-main);
     }
 
-    /* Form Card */
-    .card {
-      background-color: #1e1e1e;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-      margin-bottom: 20px;
-      border: 1px solid #333;
+    .badge-red {
+      color: var(--accent-red);
     }
 
-    .form-grid {
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
+      grid-template-columns: 350px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
       margin-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
     }
 
     .form-group {
-      display: flex;
-      flex-direction: column;
+      margin-bottom: 12px;
     }
 
     label {
+      display: block;
       font-size: 0.85rem;
-      color: #aaa;
+      color: var(--text-muted);
       margin-bottom: 5px;
     }
 
-    input {
-      background-color: #2a2a2a;
-      border: 1px solid #444;
-      color: #fff;
+    input, select {
+      width: 100%;
       padding: 10px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
       border-radius: 4px;
-      font-size: 1rem;
       outline: none;
     }
 
     input:focus {
-      border-color: #d32f2f;
+      border-color: var(--accent-red);
     }
 
     .btn {
-      background-color: #d32f2f;
+      width: 100%;
+      padding: 10px;
+      background-color: var(--accent-red);
       color: white;
       border: none;
-      padding: 12px;
       border-radius: 4px;
-      cursor: pointer;
       font-weight: bold;
-      width: 100%;
-      font-size: 1rem;
-      transition: background 0.3s;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s;
     }
 
     .btn:hover {
-      background-color: #b71c1c;
+      background-color: var(--accent-red-hover);
     }
 
     .btn-secondary {
-      background-color: #333;
-      margin-top: 10px;
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      margin-top: 8px;
     }
 
     .btn-secondary:hover {
-      background-color: #444;
+      background-color: #383838;
     }
 
-    .btn-warning {
-      background-color: #f57c00;
+    .search-bar {
+      margin-bottom: 20px;
     }
 
-    .btn-warning:hover {
-      background-color: #e65100;
-    }
-
-    /* Controls Bar */
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-
-    .search-box {
-      flex: 1;
-      min-width: 200px;
-    }
-
-    /* Table */
     .table-container {
       overflow-x: auto;
     }
@@ -144,287 +161,539 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #1e1e1e;
-      border-radius: 8px;
-      overflow: hidden;
+      text-align: left;
     }
 
     th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #333;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
     }
 
     th {
-      background-color: #2a2a2a;
-      color: #d32f2f;
-      text-transform: uppercase;
+      background-color: var(--bg-card);
+      color: var(--text-muted);
       font-size: 0.85rem;
+      text-transform: uppercase;
     }
 
-    tr:hover {
-      background-color: #252525;
-    }
-
-    .qty-badge {
-      padding: 4px 8px;
+    .product-img {
+      width: 45px;
+      height: 45px;
+      object-fit: cover;
       border-radius: 4px;
-      font-weight: bold;
-      display: inline-block;
+      background-color: #000;
+      cursor: pointer;
+      transition: transform 0.2s;
     }
 
-    .qty-normal { background-color: #1b5e20; color: #4caf50; }
-    .qty-low { background-color: #e65100; color: #ff9800; }
-    .qty-zero { background-color: #b71c1c; color: #ff8a80; }
+    .product-img:hover {
+      transform: scale(1.08);
+      border: 1px solid var(--accent-red);
+    }
 
-    .actions-cell {
+    .qty-controls {
       display: flex;
+      align-items: center;
       gap: 8px;
     }
 
-    .btn-action {
-      padding: 6px 10px;
-      border: none;
+    .btn-qty {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 28px;
+      height: 28px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.8rem;
       font-weight: bold;
     }
 
-    .btn-edit { background-color: #0288d1; color: white; }
-    .btn-delete { background-color: #d32f2f; color: white; }
+    .btn-qty:hover {
+      background-color: var(--accent-red);
+    }
 
-    /* Modal */
-    .modal {
-      display: none;
+    .status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .status-ok {
+      background-color: rgba(46, 125, 50, 0.2);
+      color: #81c784;
+    }
+
+    .status-out {
+      background-color: rgba(211, 47, 47, 0.2);
+      color: #e57373;
+    }
+
+    .history-list {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .history-item {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .history-item span {
+      color: var(--text-main);
+    }
+
+    .btn-action {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    .btn-edit {
+      color: #64b5f6;
+    }
+
+    .btn-danger {
+      color: var(--accent-red);
+    }
+
+    .modal-overlay {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: none;
       justify-content: center;
       align-items: center;
-      padding: 20px;
       z-index: 1000;
-    }
-
-    .modal-content {
-      background: #1e1e1e;
       padding: 20px;
+    }
+
+    .modal-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      max-width: 500px;
+      padding: 25px;
       width: 100%;
-      border: 1px solid #d32f2f;
+      max-width: 450px;
+      position: relative;
+    }
+
+    .lightbox-img {
+      max-width: 90vw;
       max-height: 80vh;
-      overflow-y: auto;
+      border-radius: 8px;
+      border: 2px solid var(--accent-red);
+      object-fit: contain;
     }
 
-    .modal h2 {
-      color: #d32f2f;
-      margin-bottom: 15px;
-    }
-
-    .modal-list {
-      list-style: none;
-      margin-bottom: 15px;
-    }
-
-    .modal-list li {
-      padding: 8px 0;
-      border-bottom: 1px solid #333;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    /* Otimizações para Telas Pequenas */
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      th, td { padding: 8px 10px; font-size: 0.9rem; }
-      .actions-cell { flex-direction: column; }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>Controle de Estoque</h1>
+    <header>
+      <h1>Oficina <span class="badge-red">| Controle de Estoque</span></h1>
+    </header>
 
-    <!-- Form -->
-    <div class="card">
-      <form id="itemForm">
-        <input type="hidden" id="editIndex" value="-1">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="code">Código/Referência</label>
-            <input type="text" id="code" required placeholder="Ex: INJ-001">
+    <div class="grid">
+      <div>
+        <div class="card" style="margin-bottom: 20px;">
+          <h2>Cadastrar Novo Item</h2>
+          <form id="productForm">
+            <div class="form-group">
+              <label>Nome do Produto / Peça</label>
+              <input type="text" id="pName" required placeholder="Ex: Injetor Bosch Common Rail">
+            </div>
+            <div class="form-group">
+              <label>Código / Referência</label>
+              <input type="text" id="pCode" placeholder="Ex: 0445110351">
+            </div>
+            <div class="form-group">
+              <label>Quantidade Inicial</label>
+              <input type="number" id="pQty" min="0" value="1" required>
+            </div>
+            <div class="form-group">
+              <label>Foto do Produto (Upload com Otimização)</label>
+              <input type="file" id="pImgFile" accept="image/*" style="margin-bottom: 5px;">
+              <input type="url" id="pImgUrl" placeholder="Ou cole o link da imagem">
+            </div>
+            <button type="submit" class="btn">Adicionar ao Estoque</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Histórico de Movimentações</h2>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar por nome ou código da peça..." onkeyup="renderProducts()">
           </div>
-          <div class="form-group">
-            <label for="name">Descrição da Peça</label>
-            <input type="text" id="name" required placeholder="Ex: Injetor Bosch Common Rail">
-          </div>
-          <div class="form-group">
-            <label for="qty">Quantidade</label>
-            <input type="number" id="qty" required min="0" value="1">
-          </div>
-          <div class="form-group">
-            <label for="minQty">Qtd. Mínima Alertar</label>
-            <input type="number" id="minQty" required min="0" value="2">
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Peça / Código</th>
+                  <th>Status</th>
+                  <th>Qtd Disponível</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="productTable"></tbody>
+            </table>
           </div>
         </div>
-        <button type="submit" class="btn" id="saveBtn">Salvar Peça</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDIÇÃO -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+      <button class="close-btn" onclick="closeEditModal()">✕</button>
+      <h2>Editar Item</h2>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label>Nome do Produto / Peça</label>
+          <input type="text" id="editName" required>
+        </div>
+        <div class="form-group">
+          <label>Código / Referência</label>
+          <input type="text" id="editCode">
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <input type="number" id="editQty" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Nova Foto (Deixe em branco para manter a atual)</label>
+          <input type="file" id="editImgFile" accept="image/*" style="margin-bottom: 5px;">
+          <input type="url" id="editImgUrl" placeholder="Ou cole um novo link da imagem">
+        </div>
+        <button type="submit" class="btn">Salvar Alterações</button>
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
       </form>
     </div>
-
-    <!-- Controls -->
-    <div class="controls">
-      <input type="text" id="search" class="search-box" placeholder="Buscar por código ou descrição..." oninput="renderData()">
-      <button class="btn btn-warning" onclick="checkAlerts()">Ver Alertas de Estoque</button>
-      <button class="btn btn-secondary" onclick="exportData()">Exportar Dados</button>
-    </div>
-
-    <!-- Table -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Descrição</th>
-            <th>Qtd.</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <!-- Conteúdo alimentado via JavaScript -->
-        </tbody>
-      </table>
-    </div>
   </div>
 
-  <!-- Modal Alertas -->
-  <div class="modal" id="alertModal">
-    <div class="modal-content">
-      <h2>Atenção: Peças em Falta/Baixas</h2>
-      <ul class="modal-list" id="alertList"></ul>
-      <button class="btn" onclick="closeModal()">Fechar</button>
-    </div>
+  <!-- LIGHTBOX FOTO -->
+  <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+    <button class="close-btn" onclick="closeImageModal()">✕</button>
+    <img id="modalImage" class="lightbox-img" src="" alt="Foto Expandida">
   </div>
+
+  <!-- SUPABASE SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    let inventory = JSON.parse(localStorage.getItem('oficina_estoque')) || [];
+    const SUPABASE_URL = 'https://ywybppfkyekqlrndwhdn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_R08_JT0lLER2lnRE-v4xSw_4Dgl8BDU';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const itemForm = document.getElementById('itemForm');
-    const saveBtn = document.getElementById('saveBtn');
-    const editIndexInput = document.getElementById('editIndex');
+    let products = [];
+    let history = [];
 
-    itemForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      const code = document.getElementById('code').value.trim();
-      const name = document.getElementById('name').value.trim();
-      const qty = parseInt(document.getElementById('qty').value);
-      const minQty = parseInt(document.getElementById('minQty').value);
-      const editIndex = parseInt(editIndexInput.value);
+    const productForm = document.getElementById('productForm');
+    const pImgFile = document.getElementById('pImgFile');
+    const editForm = document.getElementById('editForm');
 
-      if (editIndex === -1) {
-        inventory.push({ code, name, qty, minQty });
-      } else {
-        inventory[editIndex] = { code, name, qty, minQty };
-        editIndexInput.value = -1;
-        saveBtn.innerText = 'Salvar Peça';
-      }
+    function compressImage(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
 
-      saveAndRender();
-      itemForm.reset();
-      document.getElementById('qty').value = 1;
-      document.getElementById('minQty').value = 2;
-    });
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    function saveAndRender() {
-      localStorage.setItem('oficina_estoque', JSON.stringify(inventory));
-      renderData();
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          callback(compressedDataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
-    function renderData() {
-      const tbody = document.getElementById('tableBody');
-      const searchTerm = document.getElementById('search').value.toLowerCase();
-      tbody.innerHTML = '';
+    async function loadData() {
+      const { data: prodData } = await _supabase
+        .from('produtos')
+        .select('*')
+        .order('id', { ascending: false });
 
-      inventory.forEach((item, index) => {
-        if (item.code.toLowerCase().includes(searchTerm) || item.name.toLowerCase().includes(searchTerm)) {
-          let badgeClass = 'qty-normal';
-          if (item.qty === 0) badgeClass = 'qty-zero';
-          else if (item.qty <= item.minQty) badgeClass = 'qty-low';
+      if (prodData) products = prodData;
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.code}</td>
-            <td>${item.name}</td>
-            <td><span class="qty-badge ${badgeClass}">${item.qty}</span></td>
-            <td class="actions-cell">
-              <button class="btn-action btn-edit" onclick="editItem(${index})">Editar</button>
-              <button class="btn-action btn-delete" onclick="deleteItem(${index})">Excluir</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
+      const { data: histData } = await _supabase
+        .from('historico')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(20);
+
+      if (histData) history = histData;
+
+      renderProducts();
+      renderHistory();
+    }
+
+    async function logMovement(productName, type, amount) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+      const newLog = { date: dateStr, text: `${type}: ${amount}x ${productName}` };
+
+      const { data, error } = await _supabase
+        .from('historico')
+        .insert([newLog])
+        .select();
+
+      if (!error && data) {
+        history.unshift(data[0]);
+        if (history.length > 20) history.pop();
+        renderHistory();
+      }
+    }
+
+    productForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('pName').value;
+      const code = document.getElementById('pCode').value || 'S/N';
+      const qty = parseInt(document.getElementById('pQty').value);
+      const urlInput = document.getElementById('pImgUrl').value;
+      const fileInput = pImgFile.files[0];
+
+      if (fileInput) {
+        compressImage(fileInput, (compressedImg) => {
+          addProduct(name, code, qty, compressedImg);
+        });
+      } else {
+        const img = urlInput || 'https://via.placeholder.com/50?text=Peca';
+        addProduct(name, code, qty, img);
+      }
+    });
+
+    async function addProduct(name, code, qty, img) {
+      const newProduct = {
+        id: Date.now(),
+        name,
+        code,
+        qty: parseInt(qty),
+        img
+      };
+
+      const { error } = await _supabase.from('produtos').insert([newProduct]);
+
+      if (!error) {
+        products.unshift(newProduct);
+        logMovement(name, 'Entrada Inicial', qty);
+        productForm.reset();
+        renderProducts();
+      } else {
+        alert("Erro ao salvar produto no banco.");
+      }
+    }
+
+    async function updateQty(id, change) {
+      const prod = products.find(p => p.id === id);
+      if (prod) {
+        const oldQty = prod.qty;
+        let newQty = prod.qty + change;
+        if (newQty < 0) newQty = 0;
+
+        const diff = newQty - oldQty;
+        if (diff !== 0) {
+          const { error } = await _supabase
+            .from('produtos')
+            .update({ qty: newQty })
+            .eq('id', id);
+
+          if (!error) {
+            prod.qty = newQty;
+            const type = diff > 0 ? 'Adicionado' : 'Removido (Orçamento)';
+            logMovement(prod.name, type, Math.abs(diff));
+            renderProducts();
+          }
         }
+      }
+    }
+
+    function openEditModal(id) {
+      const prod = products.find(p => p.id === id);
+      if (!prod) return;
+
+      document.getElementById('editId').value = prod.id;
+      document.getElementById('editName').value = prod.name;
+      document.getElementById('editCode').value = prod.code;
+      document.getElementById('editQty').value = prod.qty;
+      document.getElementById('editImgUrl').value = '';
+      document.getElementById('editImgFile').value = '';
+
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    editForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('editId').value);
+      const name = document.getElementById('editName').value;
+      const code = document.getElementById('editCode').value || 'S/N';
+      const qty = parseInt(document.getElementById('editQty').value);
+      const urlInput = document.getElementById('editImgUrl').value;
+      const fileInput = document.getElementById('editImgFile').files[0];
+
+      const prod = products.find(p => p.id === id);
+      if (!prod) return;
+
+      const applyUpdates = async (newImg) => {
+        const updateData = { name, code, qty };
+        if (newImg) updateData.img = newImg;
+
+        const { error } = await _supabase
+          .from('produtos')
+          .update(updateData)
+          .eq('id', id);
+
+        if (!error) {
+          if (prod.qty !== qty) {
+            logMovement(name, 'Ajuste Manual Qtd', qty - prod.qty);
+          } else {
+            logMovement(name, 'Edição de Dados', 0);
+          }
+
+          prod.name = name;
+          prod.code = code;
+          prod.qty = qty;
+          if (newImg) prod.img = newImg;
+
+          renderProducts();
+          closeEditModal();
+        }
+      };
+
+      if (fileInput) {
+        compressImage(fileInput, (compressedImg) => applyUpdates(compressedImg));
+      } else if (urlInput) {
+        applyUpdates(urlInput);
+      } else {
+        applyUpdates(null);
+      }
+    });
+
+    function openImageModal(imgSrc) {
+      document.getElementById('modalImage').src = imgSrc;
+      document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').style.display = 'none';
+    }
+
+    async function deleteProduct(id) {
+      const prod = products.find(p => p.id === id);
+      if (prod && confirm(`Remover "${prod.name}" do sistema?`)) {
+        const { error } = await _supabase.from('produtos').delete().eq('id', id);
+
+        if (!error) {
+          logMovement(prod.name, 'Item Removido', prod.qty);
+          products = products.filter(p => p.id !== id);
+          renderProducts();
+        }
+      }
+    }
+
+    function renderProducts() {
+      const table = document.getElementById('productTable');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      table.innerHTML = '';
+
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        table.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">Nenhum item encontrado no estoque.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(p => {
+        const hasStock = p.qty > 0;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><img src="${p.img}" class="product-img" alt="Foto" onclick="openImageModal('${p.img}')" title="Clique para ampliar"></td>
+          <td>
+            <strong>${p.name}</strong><br>
+            <small style="color: var(--text-muted)">Cód: ${p.code}</small>
+          </td>
+          <td>
+            <span class="status ${hasStock ? 'status-ok' : 'status-out'}">
+              ${hasStock ? 'DISPONÍVEL' : 'SEM ESTOQUE'}
+            </span>
+          </td>
+          <td>
+            <div class="qty-controls">
+              <button class="btn-qty" onclick="updateQty(${p.id}, -1)">-</button>
+              <span style="font-weight: bold; min-width: 20px; text-align: center;">${p.qty}</span>
+              <button class="btn-qty" onclick="updateQty(${p.id}, 1)">+</button>
+            </div>
+          </td>
+          <td>
+            <button class="btn-action btn-edit" onclick="openEditModal(${p.id})">Editar</button>
+            <button class="btn-action btn-danger" onclick="deleteProduct(${p.id})">Excluir</button>
+          </td>
+        `;
+        table.appendChild(row);
       });
     }
 
-    function editItem(index) {
-      const item = inventory[index];
-      document.getElementById('code').value = item.code;
-      document.getElementById('name').value = item.name;
-      document.getElementById('qty').value = item.qty;
-      document.getElementById('minQty').value = item.minQty;
-      editIndexInput.value = index;
-      saveBtn.innerText = 'Atualizar Peça';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function deleteItem(index) {
-      if (confirm('Deseja realmente remover esta peça do estoque?')) {
-        inventory.splice(index, 1);
-        saveAndRender();
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      if (history.length === 0) {
+        list.innerHTML = '<div class="history-item">Nenhuma movimentação.</div>';
+        return;
       }
+      history.forEach(h => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `<small>${h.date}</small><br><span>${h.text}</span>`;
+        list.appendChild(item);
+      });
     }
 
-    function checkAlerts() {
-      const alertList = document.getElementById('alertList');
-      alertList.innerHTML = '';
-      
-      const lowStockItems = inventory.filter(item => item.qty <= item.minQty);
-
-      if (lowStockItems.length === 0) {
-        alertList.innerHTML = '<li>Todas as peças estão acima do nível mínimo!</li>';
-      } else {
-        lowStockItems.forEach(item => {
-          const li = document.createElement('li');
-          const status = item.qty === 0 ? 'ZERADO' : 'BAIXO';
-          li.innerHTML = `<span><strong>${item.name}</strong> (${item.code})</span> <span style="color: ${item.qty === 0 ? '#ff8a80' : '#ff9800'}">${status}: ${item.qty} un</span>`;
-          alertList.appendChild(li);
-        });
-      }
-
-      document.getElementById('alertModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('alertModal').style.display = 'none';
-    }
-
-    function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inventory, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "backup_estoque_oficina.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    renderData();
+    loadData();
   </script>
 
-  <!-- Registro do Service Worker -->
+  <!-- Registro do Service Worker (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
