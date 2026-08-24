@@ -446,10 +446,17 @@
     async function loadData() {
       const { data: prodData } = await _supabase
         .from('produtos')
-        .select('*')
-        .order('id', { ascending: false });
+        .select('*');
 
-      if (prodData) products = prodData;
+      if (prodData) {
+        products = prodData.map(p => ({
+          id: p.id || p["eu ia"],
+          name: p.nome,
+          code: p.código,
+          qty: p.quantidade,
+          img: p.imagem
+        })).reverse();
+      }
 
       const { data: histData } = await _supabase
         .from('historico')
@@ -494,29 +501,40 @@
           addProduct(name, code, qty, compressedImg);
         });
       } else {
-        const img = urlInput || 'https://via.placeholder.com/50?text=Peca';
+        const img = urlInput || '';
         addProduct(name, code, qty, img);
       }
     });
 
     async function addProduct(name, code, qty, img) {
       const newProduct = {
-        id: Date.now(),
-        name,
-        code,
-        qty: parseInt(qty),
-        img
+        nome: name,
+        código: code,
+        quantidade: parseInt(qty),
+        imagem: img
       };
 
-      const { error } = await _supabase.from('produtos').insert([newProduct]);
+      const { data, error } = await _supabase
+        .from('produtos')
+        .insert([newProduct])
+        .select();
 
-      if (!error) {
-        products.unshift(newProduct);
+      if (!error && data && data.length > 0) {
+        const formattedProduct = {
+          id: data[0].id || data[0]["eu ia"],
+          name: data[0].nome,
+          code: data[0].código,
+          qty: data[0].quantidade,
+          img: data[0].imagem
+        };
+
+        products.unshift(formattedProduct);
         logMovement(name, 'Entrada Inicial', qty);
         productForm.reset();
         renderProducts();
       } else {
-        alert("Erro ao salvar produto no banco.");
+        console.error("Erro detalhado do Supabase:", error);
+        alert("Erro ao salvar no banco: " + (error?.message || "Verifique o console"));
       }
     }
 
@@ -531,7 +549,7 @@
         if (diff !== 0) {
           const { error } = await _supabase
             .from('produtos')
-            .update({ qty: newQty })
+            .update({ quantidade: newQty })
             .eq('id', id);
 
           if (!error) {
@@ -575,8 +593,8 @@
       if (!prod) return;
 
       const applyUpdates = async (newImg) => {
-        const updateData = { name, code, qty };
-        if (newImg) updateData.img = newImg;
+        const updateData = { nome: name, código: code, quantidade: qty };
+        if (newImg) updateData.imagem = newImg;
 
         const { error } = await _supabase
           .from('produtos')
@@ -648,8 +666,11 @@
       filtered.forEach(p => {
         const hasStock = p.qty > 0;
         const row = document.createElement('tr');
+        const defaultImg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect width="100%" height="100%" fill="%23333"/><text x="50%" y="50%" fill="%23aaa" font-size="10" dominant-baseline="middle" text-anchor="middle">Peça</text></svg>';
+        const imageSrc = p.img || defaultImg;
+
         row.innerHTML = `
-          <td><img src="${p.img}" class="product-img" alt="Foto" onclick="openImageModal('${p.img}')" title="Clique para ampliar"></td>
+          <td><img src="${imageSrc}" class="product-img" alt="Foto" onclick="openImageModal('${imageSrc}')" title="Clique para ampliar"></td>
           <td>
             <strong>${p.name}</strong><br>
             <small style="color: var(--text-muted)">Cód: ${p.code}</small>
