@@ -246,7 +246,6 @@
       color: var(--accent-red);
     }
 
-    /* MODAL DE EDIÇÃO E VISUALIZAÇÃO DA FOTO */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -299,7 +298,6 @@
     </header>
 
     <div class="grid">
-      <!-- PAINEL LATERAL: CADASTRO E HISTÓRICO -->
       <div>
         <div class="card" style="margin-bottom: 20px;">
           <h2>Cadastrar Novo Item</h2>
@@ -317,7 +315,7 @@
               <input type="number" id="pQty" min="0" value="1" required>
             </div>
             <div class="form-group">
-              <label>Foto do Produto (Upload ou URL)</label>
+              <label>Foto do Produto (Upload com Otimização)</label>
               <input type="file" id="pImgFile" accept="image/*" style="margin-bottom: 5px;">
               <input type="url" id="pImgUrl" placeholder="Ou cole o link da imagem">
             </div>
@@ -327,13 +325,10 @@
 
         <div class="card">
           <h2>Histórico de Movimentações</h2>
-          <div class="history-list" id="historyList">
-            <!-- Registros gerados via script -->
-          </div>
+          <div class="history-list" id="historyList"></div>
         </div>
       </div>
 
-      <!-- PAINEL PRINCIPAL: BUSCA E LISTA -->
       <div>
         <div class="card">
           <div class="search-bar">
@@ -351,9 +346,7 @@
                   <th>Ações</th>
                 </tr>
               </thead>
-              <tbody id="productTable">
-                <!-- Linhas inseridas via JS -->
-              </tbody>
+              <tbody id="productTable"></tbody>
             </table>
           </div>
         </div>
@@ -391,7 +384,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE VISUALIZAÇÃO DE FOTO GRANDE (LIGHTBOX) -->
+  <!-- LIGHTBOX FOTO -->
   <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
     <button class="close-btn" onclick="closeImageModal()">✕</button>
     <img id="modalImage" class="lightbox-img" src="" alt="Foto Expandida">
@@ -405,23 +398,48 @@
     const pImgFile = document.getElementById('pImgFile');
     const editForm = document.getElementById('editForm');
 
-    // Salvar estado no LocalStorage
-    function saveData() {
-      localStorage.setItem('oficina_estoque', JSON.stringify(products));
-      localStorage.setItem('oficina_historico', JSON.stringify(history));
+    // Função para compactar imagens antes do salvamento no LocalStorage
+    function compressImage(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Reduz qualidade da imagem para economizar espaço
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          callback(compressedDataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
-    // Registrar movimentação
+    function saveData() {
+      try {
+        localStorage.setItem('oficina_estoque', JSON.stringify(products));
+        localStorage.setItem('oficina_historico', JSON.stringify(history));
+      } catch (e) {
+        alert("Atenção: O limite do navegador foi atingido. Remova algumas imagens antigas ou reduza o tamanho para voltar a salvar normalmente.");
+      }
+    }
+
     function logMovement(productName, type, amount) {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
       history.unshift({ date: dateStr, text: `${type}: ${amount}x ${productName}` });
-      if (history.length > 30) history.pop();
+      if (history.length > 20) history.pop(); // Limita o histórico a 20 registros para economizar espaço
       saveData();
       renderHistory();
     }
 
-    // Adicionar novo produto
     productForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -432,11 +450,9 @@
       const fileInput = pImgFile.files[0];
 
       if (fileInput) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          addProduct(name, code, qty, e.target.result);
-        };
-        reader.readAsDataURL(fileInput);
+        compressImage(fileInput, (compressedImg) => {
+          addProduct(name, code, qty, compressedImg);
+        });
       } else {
         const img = urlInput || 'https://via.placeholder.com/50?text=Peca';
         addProduct(name, code, qty, img);
@@ -458,7 +474,6 @@
       renderProducts();
     }
 
-    // Alterar quantidade (+ / -)
     function updateQty(id, change) {
       const prod = products.find(p => p.id === id);
       if (prod) {
@@ -475,7 +490,6 @@
       }
     }
 
-    // ABRIR E EDITAR ITEM
     function openEditModal(id) {
       const prod = products.find(p => p.id === id);
       if (!prod) return;
@@ -501,7 +515,7 @@
       const code = document.getElementById('editCode').value || 'S/N';
       const qty = parseInt(document.getElementById('editQty').value);
       const urlInput = document.getElementById('editImgUrl').value;
-      const fileInput = document.getElementById('editImgFile').value ? document.getElementById('editImgFile').files[0] : null;
+      const fileInput = document.getElementById('editImgFile').files[0];
 
       const prod = products.find(p => p.id === id);
       if (!prod) return;
@@ -524,11 +538,9 @@
       };
 
       if (fileInput) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          applyUpdates(e.target.result);
-        };
-        reader.readAsDataURL(fileInput);
+        compressImage(fileInput, (compressedImg) => {
+          applyUpdates(compressedImg);
+        });
       } else if (urlInput) {
         applyUpdates(urlInput);
       } else {
@@ -536,7 +548,6 @@
       }
     });
 
-    // EXPANDIR FOTO (LIGHTBOX)
     function openImageModal(imgSrc) {
       const modal = document.getElementById('imageModal');
       const modalImg = document.getElementById('modalImage');
@@ -548,7 +559,6 @@
       document.getElementById('imageModal').style.display = 'none';
     }
 
-    // Excluir produto
     function deleteProduct(id) {
       const prod = products.find(p => p.id === id);
       if (prod && confirm(`Remover "${prod.name}" do sistema?`)) {
@@ -558,7 +568,6 @@
       }
     }
 
-    // Renderizar Tabela
     function renderProducts() {
       const table = document.getElementById('productTable');
       const search = document.getElementById('searchInput').value.toLowerCase();
@@ -603,7 +612,6 @@
       });
     }
 
-    // Renderizar Histórico
     function renderHistory() {
       const list = document.getElementById('historyList');
       list.innerHTML = '';
@@ -619,7 +627,6 @@
       });
     }
 
-    // Inicialização
     renderProducts();
     renderHistory();
   </script>
