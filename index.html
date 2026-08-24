@@ -704,8 +704,14 @@
   </script>
 <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW Registrado!', reg))
+          .catch(err => console.log('Erro SW:', err));
+      });
     }
   </script>
+</body>
+</html>
 </body>
 </html>
