@@ -1,21 +1,23 @@
 {
   "short_name": "Estoque",
   "name": "Controle de Estoque - Oficina",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
   "icons": [
     {
       "src": "https://via.placeholder.com/192/d32f2f/ffffff?text=ESTOQUE",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "https://via.placeholder.com/512/d32f2f/ffffff?text=ESTOQUE",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#121212",
-  "theme_color": "#121212",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
