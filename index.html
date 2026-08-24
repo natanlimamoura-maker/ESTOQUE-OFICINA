@@ -2,8 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Controle de Estoque - Oficina</title>
+
+  <!-- Tags para transformar em App (PWA) -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Estoque Oficina">
+  <meta name="theme-color" content="#121212">
+  <link rel="manifest" href="manifest.json">
+
   <style>
     :root {
       --bg-primary: #121212;
@@ -394,7 +403,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    // Configuração do Supabase com as suas credenciais
     const SUPABASE_URL = 'https://ywybppfkyekqlrndwhdn.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_R08_JT0lLER2lnRE-v4xSw_4Dgl8BDU';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -406,7 +414,6 @@
     const pImgFile = document.getElementById('pImgFile');
     const editForm = document.getElementById('editForm');
 
-    // Função de compactação de imagem
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.onload = function(event) {
@@ -429,7 +436,6 @@
       reader.readAsDataURL(file);
     }
 
-    // MIGRAR DADOS DO LOCALSTORAGE PARA O SUPABASE (evita perda de dados)
     async function migrateLocalStorage() {
       const localProducts = JSON.parse(localStorage.getItem('oficina_estoque')) || [];
       const localHistory = JSON.parse(localStorage.getItem('oficina_historico')) || [];
@@ -445,9 +451,8 @@
       }
     }
 
-    // Carrega os dados diretamente do Supabase
     async function loadData() {
-      await migrateLocalStorage(); // Executa a verificação/migração antes de carregar
+      await migrateLocalStorage();
 
       const { data: prodData } = await _supabase
         .from('produtos')
@@ -468,7 +473,6 @@
       renderHistory();
     }
 
-    // Grava histórico
     async function logMovement(productName, type, amount) {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
@@ -486,7 +490,6 @@
       }
     }
 
-    // Adiciona Produto
     productForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -527,7 +530,6 @@
       }
     }
 
-    // Atualizar Quantidade (+ / -)
     async function updateQty(id, change) {
       const prod = products.find(p => p.id === id);
       if (prod) {
@@ -552,7 +554,6 @@
       }
     }
 
-    // Edição
     function openEditModal(id) {
       const prod = products.find(p => p.id === id);
       if (!prod) return;
@@ -618,7 +619,6 @@
       }
     });
 
-    // Lightbox Modal
     function openImageModal(imgSrc) {
       document.getElementById('modalImage').src = imgSrc;
       document.getElementById('imageModal').style.display = 'flex';
@@ -628,7 +628,6 @@
       document.getElementById('imageModal').style.display = 'none';
     }
 
-    // Excluir
     async function deleteProduct(id) {
       const prod = products.find(p => p.id === id);
       if (prod && confirm(`Remover "${prod.name}" do sistema?`)) {
@@ -642,7 +641,6 @@
       }
     }
 
-    // Renderização
     function renderProducts() {
       const table = document.getElementById('productTable');
       const search = document.getElementById('searchInput').value.toLowerCase();
@@ -702,7 +700,6 @@
       });
     }
 
-    // Inicialização
     loadData();
   </script>
 </body>
