@@ -390,15 +390,23 @@
     <img id="modalImage" class="lightbox-img" src="" alt="Foto Expandida">
   </div>
 
+  <!-- SUPABASE SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
-    let products = JSON.parse(localStorage.getItem('oficina_estoque')) || [];
-    let history = JSON.parse(localStorage.getItem('oficina_historico')) || [];
+    // Configuração do Supabase com as suas credenciais
+    const SUPABASE_URL = 'https://ywybppfkyekqlrndwhdn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_R08_JT0lLER2lnRE-v4xSw_4Dgl8BDU';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let products = [];
+    let history = [];
 
     const productForm = document.getElementById('productForm');
     const pImgFile = document.getElementById('pImgFile');
     const editForm = document.getElementById('editForm');
 
-    // Função para compactar imagens antes do salvamento no LocalStorage
+    // Função de compactação de imagem
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.onload = function(event) {
@@ -413,7 +421,6 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-          // Reduz qualidade da imagem para economizar espaço
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
           callback(compressedDataUrl);
         };
@@ -422,24 +429,64 @@
       reader.readAsDataURL(file);
     }
 
-    function saveData() {
-      try {
-        localStorage.setItem('oficina_estoque', JSON.stringify(products));
-        localStorage.setItem('oficina_historico', JSON.stringify(history));
-      } catch (e) {
-        alert("Atenção: O limite do navegador foi atingido. Remova algumas imagens antigas ou reduza o tamanho para voltar a salvar normalmente.");
+    // MIGRAR DADOS DO LOCALSTORAGE PARA O SUPABASE (evita perda de dados)
+    async function migrateLocalStorage() {
+      const localProducts = JSON.parse(localStorage.getItem('oficina_estoque')) || [];
+      const localHistory = JSON.parse(localStorage.getItem('oficina_historico')) || [];
+
+      if (localProducts.length > 0) {
+        const { error } = await _supabase.from('produtos').upsert(localProducts);
+        if (!error) localStorage.removeItem('oficina_estoque');
+      }
+
+      if (localHistory.length > 0) {
+        const { error } = await _supabase.from('historico').insert(localHistory);
+        if (!error) localStorage.removeItem('oficina_historico');
       }
     }
 
-    function logMovement(productName, type, amount) {
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-      history.unshift({ date: dateStr, text: `${type}: ${amount}x ${productName}` });
-      if (history.length > 20) history.pop(); // Limita o histórico a 20 registros para economizar espaço
-      saveData();
+    // Carrega os dados diretamente do Supabase
+    async function loadData() {
+      await migrateLocalStorage(); // Executa a verificação/migração antes de carregar
+
+      const { data: prodData } = await _supabase
+        .from('produtos')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (prodData) products = prodData;
+
+      const { data: histData } = await _supabase
+        .from('historico')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(20);
+
+      if (histData) history = histData;
+
+      renderProducts();
       renderHistory();
     }
 
+    // Grava histórico
+    async function logMovement(productName, type, amount) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+      const newLog = { date: dateStr, text: `${type}: ${amount}x ${productName}` };
+
+      const { data, error } = await _supabase
+        .from('historico')
+        .insert([newLog])
+        .select();
+
+      if (!error && data) {
+        history.unshift(data[0]);
+        if (history.length > 20) history.pop();
+        renderHistory();
+      }
+    }
+
+    // Adiciona Produto
     productForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -459,7 +506,7 @@
       }
     });
 
-    function addProduct(name, code, qty, img) {
+    async function addProduct(name, code, qty, img) {
       const newProduct = {
         id: Date.now(),
         name,
@@ -468,28 +515,44 @@
         img
       };
 
-      products.push(newProduct);
-      logMovement(name, 'Entrada Inicial', qty);
-      productForm.reset();
-      renderProducts();
+      const { error } = await _supabase.from('produtos').insert([newProduct]);
+
+      if (!error) {
+        products.unshift(newProduct);
+        logMovement(name, 'Entrada Inicial', qty);
+        productForm.reset();
+        renderProducts();
+      } else {
+        alert("Erro ao salvar produto. Verifique se as tabelas foram criadas no Supabase.");
+      }
     }
 
-    function updateQty(id, change) {
+    // Atualizar Quantidade (+ / -)
+    async function updateQty(id, change) {
       const prod = products.find(p => p.id === id);
       if (prod) {
         const oldQty = prod.qty;
-        prod.qty += change;
-        if (prod.qty < 0) prod.qty = 0;
+        let newQty = prod.qty + change;
+        if (newQty < 0) newQty = 0;
 
-        const diff = prod.qty - oldQty;
+        const diff = newQty - oldQty;
         if (diff !== 0) {
-          const type = diff > 0 ? 'Adicionado' : 'Removido (Orçamento)';
-          logMovement(prod.name, type, Math.abs(diff));
-          renderProducts();
+          const { error } = await _supabase
+            .from('produtos')
+            .update({ qty: newQty })
+            .eq('id', id);
+
+          if (!error) {
+            prod.qty = newQty;
+            const type = diff > 0 ? 'Adicionado' : 'Removido (Orçamento)';
+            logMovement(prod.name, type, Math.abs(diff));
+            renderProducts();
+          }
         }
       }
     }
 
+    // Edição
     function openEditModal(id) {
       const prod = products.find(p => p.id === id);
       if (!prod) return;
@@ -520,27 +583,34 @@
       const prod = products.find(p => p.id === id);
       if (!prod) return;
 
-      const applyUpdates = (newImg) => {
-        if (prod.qty !== qty) {
-          logMovement(name, 'Ajuste Manual Qtd', qty - prod.qty);
-        } else {
-          logMovement(name, 'Edição de Dados', 0);
+      const applyUpdates = async (newImg) => {
+        const updateData = { name, code, qty };
+        if (newImg) updateData.img = newImg;
+
+        const { error } = await _supabase
+          .from('produtos')
+          .update(updateData)
+          .eq('id', id);
+
+        if (!error) {
+          if (prod.qty !== qty) {
+            logMovement(name, 'Ajuste Manual Qtd', qty - prod.qty);
+          } else {
+            logMovement(name, 'Edição de Dados', 0);
+          }
+
+          prod.name = name;
+          prod.code = code;
+          prod.qty = qty;
+          if (newImg) prod.img = newImg;
+
+          renderProducts();
+          closeEditModal();
         }
-
-        prod.name = name;
-        prod.code = code;
-        prod.qty = qty;
-        if (newImg) prod.img = newImg;
-
-        saveData();
-        renderProducts();
-        closeEditModal();
       };
 
       if (fileInput) {
-        compressImage(fileInput, (compressedImg) => {
-          applyUpdates(compressedImg);
-        });
+        compressImage(fileInput, (compressedImg) => applyUpdates(compressedImg));
       } else if (urlInput) {
         applyUpdates(urlInput);
       } else {
@@ -548,26 +618,31 @@
       }
     });
 
+    // Lightbox Modal
     function openImageModal(imgSrc) {
-      const modal = document.getElementById('imageModal');
-      const modalImg = document.getElementById('modalImage');
-      modalImg.src = imgSrc;
-      modal.style.display = 'flex';
+      document.getElementById('modalImage').src = imgSrc;
+      document.getElementById('imageModal').style.display = 'flex';
     }
 
     function closeImageModal() {
       document.getElementById('imageModal').style.display = 'none';
     }
 
-    function deleteProduct(id) {
+    // Excluir
+    async function deleteProduct(id) {
       const prod = products.find(p => p.id === id);
       if (prod && confirm(`Remover "${prod.name}" do sistema?`)) {
-        logMovement(prod.name, 'Item Removido', prod.qty);
-        products = products.filter(p => p.id !== id);
-        renderProducts();
+        const { error } = await _supabase.from('produtos').delete().eq('id', id);
+
+        if (!error) {
+          logMovement(prod.name, 'Item Removido', prod.qty);
+          products = products.filter(p => p.id !== id);
+          renderProducts();
+        }
       }
     }
 
+    // Renderização
     function renderProducts() {
       const table = document.getElementById('productTable');
       const search = document.getElementById('searchInput').value.toLowerCase();
@@ -627,8 +702,8 @@
       });
     }
 
-    renderProducts();
-    renderHistory();
+    // Inicialização
+    loadData();
   </script>
 </body>
 </html>
