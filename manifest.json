@@ -1,8 +1,8 @@
 {
   "short_name": "Estoque",
   "name": "Controle de Estoque - Oficina",
-  "start_url": "/?mode=pwa",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#121212",
